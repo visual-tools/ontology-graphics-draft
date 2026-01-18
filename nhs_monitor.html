@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NHS Strategic Health Monitor - Data Elucidation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #010409;
+            font-family: 'Inter', sans-serif;
+            color: #e6edf3;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+        }
+
+        .glass-panel {
+            background: rgba(13, 17, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(48, 54, 61, 0.5);
+            border-radius: 12px;
+        }
+
+        .nhs-blue-text {
+            color: #005EB8;
+        }
+
+        .critical-red {
+            color: #DA291C;
+        }
+
+        .warning-orange {
+            color: #ED8B00;
+        }
+
+        input[type=range] {
+            accent-color: #005EB8;
+        }
+
+        /* Scanline effect */
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 94, 184, 0.1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+            pointer-events: none;
+            animation: scan 4s linear infinite;
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0;
+            }
+
+            100% {
+                top: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="scanline"></div>
+
+    <!-- UI Overlay -->
+    <div class="relative z-10 w-full h-screen flex flex-col pointer-events-none p-6 md:p-10">
+
+        <!-- Header -->
+        <header class="flex justify-between items-start pointer-events-auto">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight">NHS <span class="nhs-blue-text">VITAL SIGNS</span></h1>
+                <p class="text-gray-400 text-sm max-w-md mt-1">Strategic Elucidation Model: Tracking systemic
+                    degradation and the growth of private sector interdependency (2010—2025).</p>
+            </div>
+            <div class="text-right">
+                <div id="current-year-display" class="text-5xl font-bold nhs-blue-text">2010</div>
+                <div class="text-xs uppercase tracking-widest text-gray-500">Analysis Epoch</div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main class="flex-1 flex flex-col justify-center items-center">
+            <!-- The 3D center is empty for Three.js -->
+        </main>
+
+        <!-- Bottom Controls & Data Panels -->
+        <footer class="grid grid-cols-1 md:grid-cols-4 gap-4 pointer-events-auto">
+
+            <!-- Panel 1: Waiting Lists -->
+            <div class="glass-panel p-4 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase">Waitlist Burden</h3>
+                    <div id="val-waitlist" class="text-2xl font-bold mt-1">2.4M</div>
+                </div>
+                <div class="h-1 bg-gray-800 rounded-full mt-2 overflow-hidden">
+                    <div id="bar-waitlist" class="h-full bg-blue-500 transition-all duration-500" style="width: 30%">
+                    </div>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-2">Referral to treatment (RTT) pathway backlog.</p>
+            </div>
+
+            <!-- Panel 2: Funding Gap -->
+            <div class="glass-panel p-4 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase">Funding Deficit</h3>
+                    <div id="val-funding" class="text-2xl font-bold mt-1">0%</div>
+                </div>
+                <div class="h-1 bg-gray-800 rounded-full mt-2 overflow-hidden">
+                    <div id="bar-funding" class="h-full bg-orange-500 transition-all duration-500" style="width: 0%">
+                    </div>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-2">Cumulative shortfall vs historical 4% avg growth.</p>
+            </div>
+
+            <!-- Panel 3: Staff Vacancies -->
+            <div class="glass-panel p-4 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase">Staffing Crisis</h3>
+                    <div id="val-staff" class="text-2xl font-bold mt-1">45k</div>
+                </div>
+                <div class="h-1 bg-gray-800 rounded-full mt-2 overflow-hidden">
+                    <div id="bar-staff" class="h-full bg-red-500 transition-all duration-500" style="width: 40%"></div>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-2">Unfilled full-time equivalent (FTE) roles.</p>
+            </div>
+
+            <!-- Panel 4: Privatisation -->
+            <div class="glass-panel p-4 flex flex-col justify-between border-blue-900/50">
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase">Outsourcing Ratio</h3>
+                    <div id="val-private" class="text-2xl font-bold mt-1">4.2%</div>
+                </div>
+                <div class="h-1 bg-gray-800 rounded-full mt-2 overflow-hidden">
+                    <div id="bar-private" class="h-full bg-blue-400 transition-all duration-500" style="width: 20%">
+                    </div>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-2">Budget percentage paid to non-NHS providers.</p>
+            </div>
+
+            <!-- Timeline Slider -->
+            <div class="md:col-span-4 glass-panel p-6 mt-2">
+                <input id="timeline" type="range" min="2010" max="2025" step="1" value="2010"
+                    class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
+                <div class="flex justify-between mt-2 text-[10px] font-mono text-gray-500">
+                    <span>2010 (AUSTERITY BEGINS)</span>
+                    <span>2015</span>
+                    <span>2020 (PANDEMIC)</span>
+                    <span>2025 (CURRENT)</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Data: The Evidence Base ---
+        const nhsData = {
+            2010: { wait: 2.4, funding: 0, staff: 45000, private: 4.2, health: 1.0, note: "Stable baseline." },
+            2011: { wait: 2.5, funding: 1.2, staff: 48000, private: 4.4, health: 0.95, note: "Spending growth freezes." },
+            2012: { wait: 2.6, funding: 2.5, staff: 52000, private: 4.8, health: 0.9, note: "Health and Social Care Act passed." },
+            2013: { wait: 2.8, funding: 4.1, staff: 58000, private: 5.4, health: 0.88, note: "Major restructuring begins." },
+            2014: { wait: 3.2, funding: 6.2, staff: 65000, private: 6.1, health: 0.85, note: "Performance targets begin to slip." },
+            2015: { wait: 3.5, funding: 8.5, staff: 72000, private: 6.8, health: 0.8, note: "Acute trusts report major deficits." },
+            2016: { wait: 3.8, funding: 10.1, staff: 80000, private: 7.3, health: 0.75, note: "Brexit uncertainty impacts staffing." },
+            2017: { wait: 4.1, funding: 12.4, staff: 88000, private: 7.5, health: 0.7, note: "Worst winter crisis in a decade." },
+            2018: { wait: 4.3, funding: 14.8, staff: 94000, private: 7.2, health: 0.65, note: "NHS 70th Anniversary; funding boost promised." },
+            2019: { wait: 4.6, funding: 16.5, staff: 105000, private: 7.1, health: 0.6, note: "Vacancies hit 100k milestone." },
+            2020: { wait: 4.8, funding: 20.2, staff: 102000, private: 7.0, health: 0.5, note: "COVID-19 pandemic shock." },
+            2021: { wait: 6.1, funding: 22.1, staff: 110000, private: 7.5, health: 0.45, note: "Post-lockdown backlog surge." },
+            2022: { wait: 7.2, funding: 28.5, staff: 132000, private: 8.1, health: 0.4, note: "Cost of living & strikes." },
+            2023: { wait: 7.7, funding: 32.1, staff: 125000, private: 8.4, health: 0.35, note: "Elective recovery relying on private sector." },
+            2024: { wait: 7.6, funding: 35.4, staff: 118000, private: 8.6, health: 0.32, note: "System stuck in high-pressure state." },
+            2025: { wait: 7.4, funding: 38.2, staff: 115000, private: 8.8, health: 0.3, note: "Structural deficit remains critical." }
+        };
+
+        // --- Three.js Implementation ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+        controls.enableZoom = false;
+
+        // Create a central "System Core" (Pulsing Icosahedron)
+        const coreGeo = new THREE.IcosahedronGeometry(10, 2);
+        const coreMat = new THREE.MeshBasicMaterial({
+            color: 0x005EB8,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.5
+        });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        scene.add(core);
+
+        // Inner glowing core
+        const innerGeo = new THREE.IcosahedronGeometry(5, 1);
+        const innerMat = new THREE.MeshBasicMaterial({
+            color: 0x005EB8,
+            transparent: true,
+            opacity: 0.2
+        });
+        const inner = new THREE.Mesh(innerGeo, innerMat);
+        scene.add(inner);
+
+        // Stars/Dust
+        const particlesGeo = new THREE.BufferGeometry();
+        const particlesCount = 1000;
+        const posArray = new Float32Array(particlesCount * 3);
+        for (let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 100;
+        }
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff });
+        const particleSystem = new THREE.Points(particlesGeo, particlesMat);
+        scene.add(particleSystem);
+
+        camera.position.z = 30;
+
+        // --- Interaction Logic ---
+        const timeline = document.getElementById('timeline');
+        const yearDisplay = document.getElementById('current-year-display');
+
+        let coreScaleFactor = 1;
+        let clock = new THREE.Clock();
+
+        function updateDashboard(year) {
+            const data = nhsData[year];
+
+            // Text Updates
+            yearDisplay.innerText = year;
+            document.getElementById('val-waitlist').innerText = data.wait + 'M';
+            document.getElementById('val-funding').innerText = '£' + data.funding + 'bn';
+            document.getElementById('val-staff').innerText = (data.staff / 1000).toFixed(0) + 'k';
+            document.getElementById('val-private').innerText = data.private + '%';
+
+            // Bar Updates
+            document.getElementById('bar-waitlist').style.width = (data.wait / 8 * 100) + '%';
+            document.getElementById('bar-funding').style.width = Math.min(100, (data.funding / 40 * 100)) + '%';
+            document.getElementById('bar-staff').style.width = (data.staff / 150000 * 100) + '%';
+            document.getElementById('bar-private').style.width = (data.private / 10 * 100) + '%';
+
+            // 3D Response
+            // Change color from Blue to Red based on health
+            const healthColor = new THREE.Color().lerpColors(
+                new THREE.Color(0xDA291C), // Red (Unhealthy)
+                new THREE.Color(0x005EB8), // Blue (Healthy)
+                data.health
+            );
+            core.material.color = healthColor;
+            inner.material.color = healthColor;
+
+            // Pulse speed based on year (faster = more stress)
+            coreScaleFactor = 1 + (1 - data.health) * 0.5;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = clock.getElapsedTime();
+
+            // Pulsing logic
+            const pulse = 1 + Math.sin(t * (2 / coreScaleFactor)) * 0.1;
+            core.scale.set(pulse, pulse, pulse);
+            core.rotation.y += 0.002;
+            core.rotation.x += 0.001;
+
+            inner.scale.set(pulse * 0.5, pulse * 0.5, pulse * 0.5);
+            inner.rotation.y -= 0.005;
+
+            particleSystem.rotation.y += 0.0005;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        timeline.addEventListener('input', (e) => {
+            updateDashboard(e.target.value);
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize
+        updateDashboard(2010);
+        animate();
+
+    </script>
+</body>
+
+</html>

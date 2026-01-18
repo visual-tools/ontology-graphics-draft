@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Cluster Viewer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000b0a;
+            background-image: radial-gradient(circle at center, #111 0%, #000 100%);
+            font-family: 'Inter', sans-serif;
+            color: white;
+            transition: background-image 1s ease;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            z-index: 1; 
+        }
+
+        /* 3D Label Styling */
+        .element {
+            cursor: pointer;
+            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.4s ease;
+            text-align: center;
+            user-select: none;
+            -webkit-user-select: none;
+            backface-visibility: hidden;
+            pointer-events: auto; 
+        }
+
+        /* Title Aesthetics */
+        .title-node {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-style: italic;
+            text-transform: capitalize;
+            letter-spacing: 1px;
+            padding: 10px;
+            text-shadow: 0 0 30px currentColor;
+            z-index: 10;
+        }
+
+        /* Word Aesthetics */
+        .sub-node {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            opacity: 0.75;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .sub-node:hover {
+            opacity: 1;
+            color: #fff !important;
+            text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px currentColor;
+            transform: scale(1.3);
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(2px);
+            z-index: 1000;
+        }
+
+        .title-node:hover {
+             transform: scale(1.1);
+             text-shadow: 0 0 50px currentColor;
+        }
+
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        /* Top Bar: Selector & Title */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Subtle Selector */
+        #selector-container {
+            pointer-events: auto;
+            z-index: 50;
+        }
+
+        select {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 300;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        select:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        option {
+            background: #111;
+            color: white;
+        }
+
+        /* Centered Main Title */
+        #main-title {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Playfair Display', serif;
+            font-size: 42px;
+            font-weight: 700;
+            font-style: italic;
+            text-align: center;
+            color: rgba(255,255,255,0.85);
+            text-shadow: 0 0 30px rgba(0,0,0,0.5);
+            pointer-events: none;
+            margin: 0;
+            width: auto;
+            white-space: nowrap;
+        }
+
+        /* Bottom Right Controls */
+        #controls-container {
+            pointer-events: auto;
+            align-self: flex-end;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(0,0,0,0.2);
+            padding: 10px 20px;
+            border-radius: 50px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: opacity 0.3s;
+        }
+
+        #controls-container:hover {
+            background: rgba(0,0,0,0.4);
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255,255,255,0.6);
+            padding: 6px 14px;
+            cursor: pointer;
+            border-radius: 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            color: white;
+            border-color: white;
+        }
+
+        .btn.active {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border-color: rgba(255,255,255,0.5);
+            font-weight: 600;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 80px;
+            height: 2px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        input[type=range]::-webkit-slider-thumb:hover {
+            background: white;
+        }
+
+        /* Tooltip / Modal Styling */
+        #tooltip-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 5000; 
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #tooltip-card {
+            background: rgba(15, 15, 15, 0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            width: 90%;
+            max-width: 500px;
+            padding: 50px;
+            border-radius: 8px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.9);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease-out;
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        #tooltip-card.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        #tooltip-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            font-weight: 700;
+            font-style: italic;
+            margin: 0 0 25px 0;
+            color: #fff;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 20px;
+        }
+
+        #tooltip-def {
+            font-family: 'Inter', sans-serif;
+            font-size: 22px; 
+            line-height: 1.5;
+            color: #ffffff; 
+            margin-bottom: 35px;
+            font-weight: 500; 
+        }
+
+        #tooltip-link {
+            display: inline-block;
+            background: transparent; 
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        #tooltip-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        #close-tooltip {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.2);
+            font-size: 28px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        #close-tooltip:hover {
+            color: white;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            color: rgba(255,255,255,0.3);
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 90;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- UI Controls -->
+    <div id="ui-layer">
+        <div id="top-bar">
+            <div id="selector-container">
+                <select id="dataset-select">
+                    <option value="ethics" selected>Ethical Frameworks</option>
+                    <option value="psychosomatic">Psychosomatic Healing</option>
+                    <option value="fnd">Functional Neuro Disorder</option>
+                    <option value="bennett">Bennett Institute (Oxford)</option>
+                    <option value="opensafely">OpenSAFELY Platform</option>
+                    <option value="openprescribing">OpenPrescribing.net</option>
+                    <option value="quantum">Quantum Mechanics</option>
+                    <option value="ecopsychology">Ecopsychology</option>
+                    <option value="permaculture">Permaculture Design</option>
+                    <option value="ai_licensing">AI Data Licensing</option>
+                    <option value="consciousness">Theories of Consciousness</option>
+                    <option value="philosophy">Metaphysics & Epistemology</option>
+                </select>
+            </div>
+            <h1 id="main-title">Psychosomatic Approaches</h1>
+            <div style="width: 20px;"></div> <!-- Spacer for balance -->
+        </div>
+
+        <div id="controls-container">
+            <div class="speed-control">
+                <span>Speed</span>
+                <input type="range" id="speed-slider" min="0" max="2" step="0.1" value="0.5">
+            </div>
+            <button id="toggle-anim" class="btn active">Auto-Pilot</button>
+            <button id="reset-cam" class="btn">Reset</button>
+        </div>
+    </div>
+
+    <!-- 3D Container -->
+    <div id="container"></div>
+
+    <!-- Instructions Footer -->
+    <div id="instructions">Click words to explore • Drag to rotate</div>
+
+    <!-- Popup Modal -->
+    <div id="tooltip-overlay">
+        <div id="tooltip-card">
+            <button id="close-tooltip">&times;</button>
+            <h2 id="tooltip-title">Title</h2>
+            <p id="tooltip-def">Definition goes here.</p>
+            <a id="tooltip-link" href="#" target="_blank">Read on Wikipedia</a>
+        </div>
+    </div>
+
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <!-- Main Logic -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+        // --- Database of All Clusters ---
+        const databases = {
+            ethics: {
+                title: "Ethical Frameworks",
+                bg: "radial-gradient(circle at center, #2e1a0f 0%, #000000 100%)",
+                clusters: {
+                    virtue: { 
+                        color: '#ffd740', center: { x: -350, y: 150, z: -100 }, 
+                        def: "Character-based ethics emphasizing moral character rather than duties or rules.", 
+                        words: [
+                            { t: "Aristotle", d: "Greek philosopher whose Nicomachean Ethics is the foundational text of virtue ethics." },
+                            { t: "Eudaimonia", d: "Human flourishing; the highest human good, often translated as happiness." },
+                            { t: "Phronesis", d: "Practical wisdom; the ability to decide how to achieve virtuous ends in specific situations." },
+                            { t: "Arete", d: "Moral virtue or excellence of character." },
+                            { t: "Golden Mean", d: "The desirable middle between two extremes, one of excess and the other of deficiency." },
+                            { t: "Character", d: "The stable set of mental and moral qualities distinctive to an individual." },
+                            { t: "Habit", d: "A settled or regular tendency or practice, crucial for developing virtue." },
+                            { t: "Telos", d: "An ultimate object or aim; the purpose of a thing." },
+                            { t: "Courage", d: "The virtue of facing fear and uncertainty; the mean between cowardice and rashness." },
+                            { t: "Temperance", d: "Moderation in action, thought, or feeling; restraint." },
+                            { t: "Justice", d: "Moral rightness based on ethics, rationality, law, religion, equity and fairness." },
+                            { t: "Stoicism", d: "Philosophy teaching self-control and fortitude as a means of overcoming destructive emotions." },
+                            { t: "Confucius", d: "Philosophy emphasizing personal and governmental morality, correctness of social relationships." },
+                            { t: "Magnanimity", d: "Greatness of mind and heart; the refusal to be petty." },
+                            { t: "Vice", d: "A practice or behavior or habit generally considered immoral or degrading." },
+                            { t: "Moral Exemplar", d: "A virtuous person to be imitated." }
+                        ] 
+                    },
+                    deontological: { 
+                        color: '#40c4ff', center: { x: 350, y: 150, z: -100 }, 
+                        def: "Rule-based ethics judging the morality of an action based on rules.", 
+                        words: [
+                            { t: "Immanuel Kant", d: "Central figure in modern philosophy, known for his work in deontological ethics." },
+                            { t: "Categorical Imperative", d: "Act only according to that maxim whereby you can at the same time will that it should become a universal law." },
+                            { t: "Duty", d: "A moral or legal obligation; a responsibility." },
+                            { t: "Rights", d: "Legal, social, or ethical principles of freedom or entitlement." },
+                            { t: "Universalizability", d: "The thesis that any moral judgment must be equally applicable to every relevantly identical situation." },
+                            { t: "Autonomy", d: "The capacity to make an informed, uncoerced decision." },
+                            { t: "Maxim", d: "A ground rule or subjective principle of action." },
+                            { t: "Dignity", d: "The state or quality of being worthy of honor or respect." },
+                            { t: "Respect", d: "A feeling of deep admiration for someone or something elicited by their abilities, qualities, or achievements." },
+                            { t: "Moral Law", d: "A general rule of right living; especially such a rule conceived as universal." },
+                            { t: "Absolutism", d: "The acceptance of or belief in absolute principles in political, philosophical, ethical, or theological matters." },
+                            { t: "Divine Command", d: "The view that morality is somehow dependent upon God, and that moral obligation consists in obedience to God's commands." },
+                            { t: "Contractualism", d: "Morality is based on an agreement or contract among individuals." },
+                            { t: "Kingdom of Ends", d: "A hypothetical state where all members are treated as ends, not merely as means." },
+                            { t: "Non-maleficence", d: "The obligation not to inflict harm on others." },
+                            { t: "Prima Facie", d: "Duties that are binding unless overridden by other duties (W.D. Ross)." }
+                        ] 
+                    },
+                    consequentialist: { 
+                        color: '#69f0ae', center: { x: -200, y: -250, z: 200 }, 
+                        def: "Outcome-based ethics holding that the consequences of one's conduct are the ultimate basis for judgment.", 
+                        words: [
+                            { t: "Utilitarianism", d: "The doctrine that actions are right if they are useful or for the benefit of a majority." },
+                            { t: "John Stuart Mill", d: "English philosopher and political economist, a proponent of utilitarianism." },
+                            { t: "Jeremy Bentham", d: "English philosopher and social reformer, the founder of modern utilitarianism." },
+                            { t: "Outcome", d: "The way a thing turns out; a consequence." },
+                            { t: "Happiness", d: "The state of being happy; often equated with utility." },
+                            { t: "Pleasure", d: "A feeling of happy satisfaction and enjoyment." },
+                            { t: "Suffering", d: "The state of undergoing pain, distress, or hardship." },
+                            { t: "Maximization", d: "The action of making the best or most use of something." },
+                            { t: "Hedonism", d: "The ethical theory that pleasure (in the sense of the satisfaction of desires) is the highest good." },
+                            { t: "Egoism", d: "An ethical theory that treats self-interest as the foundation of morality." },
+                            { t: "Altruism", d: "The belief in or practice of disinterested and selfless concern for the well-being of others." },
+                            { t: "Act Utilitarianism", d: "A utilitarian theory stating that a person's act is morally right if and only if it produces the best possible results in that specific situation." },
+                            { t: "Rule Utilitarianism", d: "A form of utilitarianism that says an action is right as it conforms to a rule that leads to the greatest good." },
+                            { t: "Teleology", d: "The explanation of phenomena in terms of the purpose they serve rather than of the cause by which they arise." },
+                            { t: "Effective Altruism", d: "Using evidence and reason to determine the most effective ways to benefit others." },
+                            { t: "Preference Utilitarianism", d: "A type of utilitarianism that promotes actions that fulfill the interests (preferences) of those involved." }
+                        ] 
+                    },
+                    relational: { 
+                        color: '#ff80ab', center: { x: 300, y: -250, z: 200 }, 
+                        def: "Relationship-based ethics situating moral action within the context of interpersonal relationships.", 
+                        words: [
+                            { t: "Care Ethics", d: "A normative ethical theory that holds that moral action centers on interpersonal relationships and care or benevolence." },
+                            { t: "Carol Gilligan", d: "American feminist, ethicist, and psychologist, known for her work on ethical community and ethical relationships." },
+                            { t: "Nel Noddings", d: "American feminist, educationalist, and philosopher, best known for her work in philosophy of education and care ethics." },
+                            { t: "Interdependence", d: "The dependence of two or more people or things on each other." },
+                            { t: "Empathy", d: "The ability to understand and share the feelings of another." },
+                            { t: "Relationship", d: "The way in which two or more concepts, objects, or people are connected." },
+                            { t: "Context", d: "The circumstances that form the setting for an event, statement, or idea." },
+                            { t: "Partiality", d: "Unfair bias in favor of one thing or person compared with another." },
+                            { t: "Vulnerability", d: "The quality or state of being exposed to the possibility of being attacked or harmed." },
+                            { t: "Responsibility", d: "The state or fact of having a duty to deal with something or of having control over someone." },
+                            { t: "Narrative", d: "A spoken or written account of connected events; a story." },
+                            { t: "Feminist Ethics", d: "An approach to ethics that builds on the belief that traditionally ethical theorizing has undervalued women's moral experience." },
+                            { t: "Trust", d: "Firm belief in the reliability, truth, ability, or strength of someone or something." },
+                            { t: "Dialogue", d: "Conversation between two or more people as a feature of a book, play, or movie." },
+                            { t: "Personhood", d: "The status of being a person, often linked to social recognition." },
+                            { t: "Ubuntu", d: "African philosophy often translated as 'I am because we are'." }
+                        ] 
+                    }
+                }
+            },
+            psychosomatic: {
+                title: "Psychosomatic Approaches",
+                bg: "radial-gradient(circle at center, #0f2e2e 0%, #000000 100%)",
+                clusters: {
+                    somatic_therapies: {
+                        color: '#69f0ae', center: { x: -350, y: 150, z: -100 },
+                        def: "Therapies prioritizing physical sensations to process psychological distress.",
+                        words: [
+                            { t: "Somatic Experiencing", d: "A body-oriented approach to the healing of trauma developed by Dr. Peter Levine." },
+                            { t: "Felt Sense", d: "Internal bodily awareness of a situation or problem (Eugene Gendlin)." },
+                            { t: "Body Scan", d: "Meditative practice involving scanning the body for sensations." },
+                            { t: "Grounding", d: "Techniques used to reconnect with the present moment and physical reality." },
+                            { t: "Feldenkrais", d: "Somatic education improving movement and reducing pain through self-awareness." },
+                            { t: "Hakomi", d: "Somatic psychotherapy using mindfulness to study the body's organization." },
+                            { t: "Sensorimotor", d: "Therapy integrating talk therapy with body-centered interventions." },
+                            { t: "Proprioception", d: "The body's ability to sense its location and movements." },
+                            { t: "Alexander Technique", d: "Educational process to retrain habitual patterns of movement." },
+                            { t: "Focusing", d: "Technique involving listening to the 'felt sense' (Gendlin)." },
+                            { t: "Embodiment", d: "The tangible or visible form of an idea, quality, or feeling." },
+                            { t: "Titration", d: "Exposing the nervous system to small amounts of distress to build tolerance." },
+                            { t: "Yoga Therapy", d: "Adapting yoga practices for health conditions." },
+                            { t: "Authentic Movement", d: "Expressive movement practice to access unconscious material." }
+                        ]
+                    },
+                    nervous_system: {
+                        color: '#ff8a80', center: { x: 350, y: 150, z: -100 },
+                        def: "Approaches focused on the autonomic nervous system and regulation.",
+                        words: [
+                            { t: "Polyvagal Theory", d: "Theory describing how the vagus nerve regulates social engagement and defense." },
+                            { t: "Vagus Nerve", d: "Main nerve of the parasympathetic nervous system." },
+                            { t: "Window of Tolerance", d: "The zone of arousal in which a person functions most effectively." },
+                            { t: "Neuroception", d: "Subconscious process scanning for cues of safety and danger." },
+                            { t: "Co-regulation", d: "How one nervous system calms or stimulates another." },
+                            { t: "Fight or Flight", d: "Sympathetic nervous system's reaction to perceived threat." },
+                            { t: "Freeze Response", d: "Immobilization or shutdown in the face of overwhelming threat." },
+                            { t: "Regulation", d: "Ability to manage and respond to emotional experience." },
+                            { t: "Sympathetic", d: "Part of ANS that arouses the body (mobilization)." },
+                            { t: "Parasympathetic", d: "Part of ANS that calms the body (rest/digest)." },
+                            { t: "Resourcing", d: "Establishing internal/external sources of safety." },
+                            { t: "Ventral Vagal", d: "State of social engagement and safety." },
+                            { t: "Dorsal Vagal", d: "State of shutdown or freeze." }
+                        ]
+                    },
+                    mind_body_science: {
+                        color: '#40c4ff', center: { x: -200, y: -250, z: 200 },
+                        def: "Scientific study of interactions between psychology and physiology.",
+                        words: [
+                            { t: "Psychoneuroimmunology", d: "Study of interaction between psychological processes and nervous/immune systems." },
+                            { t: "Gabor Maté", d: "Physician known for work on stress, addiction, and illness." },
+                            { t: "The Body Keeps the Score", d: "Seminal work by Bessel van der Kolk on trauma." },
+                            { t: "Biofeedback", d: "Using monitoring to train control of body functions." },
+                            { t: "Placebo Effect", d: "Beneficial effect produced by belief/treatment context." },
+                            { t: "Epigenetics", d: "How behaviors/environment affect gene expression." },
+                            { t: "HPA Axis", d: "Hypothalamus-pituitary-adrenal axis, central to stress response." },
+                            { t: "Cortisol", d: "Primary stress hormone." },
+                            { t: "Allostatic Load", d: "Wear and tear on body from chronic stress." },
+                            { t: "Gut-Brain Axis", d: "Signaling between GI tract and CNS." },
+                            { t: "Neuroplasticity", d: "Brain's ability to reorganize itself." },
+                            { t: "Telomeres", d: "Protective caps on chromosomes affected by stress." }
+                        ]
+                    },
+                    emotional_integration: {
+                        color: '#ea80fc', center: { x: 300, y: -250, z: 200 },
+                        def: "Therapies focused on releasing stored emotional energy.",
+                        words: [
+                            { t: "Catharsis", d: "Process of releasing strong or repressed emotions." },
+                            { t: "Wilhelm Reich", d: "Psychoanalyst who developed concept of 'body armor'." },
+                            { t: "Bioenergetics", d: "Body-psychotherapy based on Reich's work." },
+                            { t: "Body Armor", d: "Chronic muscular tension reflecting emotional repression." },
+                            { t: "Breathwork", d: "Conscious control of breathing to influence state." },
+                            { t: "Mindfulness", d: "Nonjudgmental awareness of present moment." },
+                            { t: "Alexithymia", d: "Inability to recognize or describe one's own emotions." },
+                            { t: "Repression", d: "Excluding desires/impulses from consciousness." },
+                            { t: "Integration", d: "Bringing separate elements of self into a whole." },
+                            { t: "Psychodrama", d: "Action method using dramatization for insight." },
+                            { t: "Emotional Intelligence", d: "Capacity to be aware of and control emotions." },
+                            { t: "Shadow Work", d: "Exploring repressed or hidden parts of the personality." }
+                        ]
+                    }
+                }
+            },
+            fnd: {
+                title: "Functional Neurological Disorder",
+                bg: "radial-gradient(circle at center, #1a233a 0%, #000000 100%)",
+                clusters: {
+                    symptoms: { 
+                        color: '#ff5252', center: { x: -350, y: 150, z: -100 }, 
+                        def: "Common physical manifestations.", 
+                        words: [
+                            { t: "Limb Weakness", d: "Sudden weakness or paralysis in a leg or arm, often dragging the leg while walking." },
+                            { t: "Tremor", d: "Involuntary shaking, often variable in rhythm or distracted by other movements." },
+                            { t: "NEAD", d: "Non-Epileptic Attack Disorder (or Dissociative Seizures)." },
+                            { t: "Functional Gait", d: "Abnormal walking patterns, such as dragging a leg or excessive slowness." },
+                            { t: "Dystonia", d: "Involuntary muscle contractions causing repetitive or twisting movements." },
+                            { t: "Sensory Loss", d: "Numbness, tingling, or loss of sensation, often stopping abruptly." },
+                            { t: "Speech Issues", d: "Functional dysphonia (whispering), stuttering, or slurred speech." },
+                            { t: "Brain Fog", d: "Cognitive difficulties involving memory, concentration, and feeling 'spaced out'." },
+                            { t: "Fatigue", d: "Extreme tiredness that is not relieved by rest." },
+                            { t: "Visual Disturbance", d: "Blurred vision, tunnel vision, or temporary blindness." },
+                            { t: "Drop Attacks", d: "Sudden falls without loss of consciousness." },
+                            { t: "Chronic Pain", d: "Persistent pain that often co-occurs with functional symptoms." },
+                            { t: "Somatization", d: "Production of recurrent medical symptoms with no organic cause." },
+                            { t: "Functional Tics", d: "Sudden, rapid, recurrent, nonrhythmic motor movements or vocalizations." }
+                        ] 
+                    },
+                    mechanisms: { 
+                        color: '#7c4dff', center: { x: 350, y: 150, z: -100 }, 
+                        def: "Theories explaining why FND happens.", 
+                        words: [
+                            { t: "Software Issue", d: "Hardware intact, software crashing." },
+                            { t: "Predictive Coding", d: "Brain predicts symptoms based on expectation." },
+                            { t: "Attention", d: "Abnormal focus on body; movement improves when distracted." },
+                            { t: "Agency", d: "Disrupted sense of ownership of movement." },
+                            { t: "Limbic System", d: "Emotional center hijacking motor control." },
+                            { t: "Disconnect", d: "Functional disconnection between planning and execution areas." },
+                            { t: "Central Sensitization", d: "Nervous system stuck in high reactivity." },
+                            { t: "Biopsychosocial", d: "Biological, psychological, and social factors combined." },
+                            { t: "Psychogenic", d: "Older term suggesting symptoms are 'all in the mind'." },
+                            { t: "Conversion", d: "Freudian concept of physical symptoms resolving emotional conflict." },
+                            { t: "Trigger", d: "Physical injury or illness precipitating onset." },
+                            { t: "Bayesian Brain", d: "Theory that the brain generates models of the world and updates them based on sensory input." },
+                            { t: "Nocebo", d: "Negative expectations leading to negative outcomes." }
+                        ] 
+                    },
+                    diagnosis: { 
+                        color: '#448aff', center: { x: -200, y: -250, z: 200 }, 
+                        def: "How FND is identified.", 
+                        words: [
+                            { t: "Hoover's Sign", d: "Hip extension weakness improves with contralateral resistance." },
+                            { t: "Entrainment", d: "Tremor takes on rhythm of external tapping." },
+                            { t: "Distractibility", d: "Symptoms improve with distraction." },
+                            { t: "Positive Signs", d: "Specific clinical features unique to FND." },
+                            { t: "Rule-In", d: "Diagnosis based on signs, not just exclusion." },
+                            { t: "Normal MRI", d: "Scans show intact structure (hardware)." },
+                            { t: "Video EEG", d: "Distinguishes dissociative seizures from epilepsy." },
+                            { t: "Neurologist", d: "Specialist in nervous system disorders." },
+                            { t: "Inconsistency", d: "Variation in symptom severity by context." },
+                            { t: "Incongruence", d: "Symptoms not aligning with anatomical pathways." },
+                            { t: "Sign of the Grimace", d: "Facial grimacing during effortful movement." },
+                            { t: "Drift without Pronation", d: "Arm drifts down without turning inward (unlike stroke)." }
+                        ] 
+                    },
+                    treatment: { 
+                        color: '#69f0ae', center: { x: 300, y: -250, z: 200 }, 
+                        def: "Therapies for recovery.", 
+                        words: [
+                            { t: "Neuroplasticity", d: "Brain's ability to rewire itself." },
+                            { t: "Physiotherapy", d: "Retraining normal movement patterns." },
+                            { t: "CBT", d: "Cognitive Behavioral Therapy for symptom management." },
+                            { t: "Retraining", d: "Accessing normal motor programs again." },
+                            { t: "Occupational Therapy", d: "Regaining independence in daily life." },
+                            { t: "Multidisciplinary", d: "Team approach (Neuro, Physio, Psych)." },
+                            { t: "Pacing", d: "Managing activity to avoid boom-bust cycles." },
+                            { t: "Education", d: "Understanding the diagnosis is therapeutic." },
+                            { t: "Distraction", d: "Bypassing conscious monitoring to facilitate movement." },
+                            { t: "Acceptance", d: "Focusing on recovery rather than searching for causes." },
+                            { t: "Graded Exercise", d: "Slowly increasing activity tolerance." },
+                            { t: "Validation", d: "Acknowledging symptoms are real." },
+                            { t: "Hypnotherapy", d: "Using trance states to alter symptom perception." },
+                            { t: "Mirror Therapy", d: "Using visual feedback to trick the brain into normal movement." }
+                        ] 
+                    }
+                }
+            },
+            bennett: {
+                title: "Bennett Institute (Oxford)",
+                bg: "radial-gradient(circle at center, #002147 0%, #000000 100%)", // Oxford Blue/Black
+                clusters: {
+                    platforms: {
+                        color: '#60a5fa', // Blue
+                        center: { x: -400, y: 200, z: -100 },
+                        def: "Major data tools built and maintained by the institute to improve healthcare transparency and safety.",
+                        words: [
+                            { t: "OpenSAFELY", d: "Secure, transparent, open-source platform for analysis of NHS electronic health records." },
+                            { t: "OpenPrescribing", d: "Tool allowing anyone to explore NHS primary care prescribing data." },
+                            { t: "TrialsTracker", d: "Automated tool tracking clinical trial reporting compliance (FDAAA and EU)." },
+                            { t: "OpenPathology", d: "Platform visualizing variation in pathology testing across the NHS." },
+                            { t: "RetractoBot", d: "Tool that alerts users when they cite retracted papers." },
+                            { t: "OpenCodelists", d: "Tool for creating, reviewing and sharing lists of clinical codes." },
+                            { t: "Compare the NHS", d: "Comparative analysis of NHS hospital trust performance." },
+                            { t: "OpenDataSavesLives", d: "Campaign advocating for better use of health data." }
+                        ]
+                    },
+                    engineering_ethos: {
+                        color: '#facc15', // Yellow
+                        center: { x: 400, y: 200, z: -100 },
+                        def: "The rigorous software engineering principles applied to academic data science.",
+                        words: [
+                            { t: "RAP", d: "Reproducible Analytical Pipelines: Automating data processing to ensure reproducibility." },
+                            { t: "Open Source", d: "Publishing all code publicly to allow review and reuse." },
+                            { t: "Code Review", d: "Peer review of analysis code, not just the final paper." },
+                            { t: "Unit Testing", d: "Automated tests to ensure individual parts of code work as expected." },
+                            { t: "GitHub", d: "Platform used for collaboration and version control of all research code." },
+                            { t: "Continuous Integration", d: "Automatically running tests whenever code changes." },
+                            { t: "Synthetic Data", d: "Using fake data to develop code safely before running on real patient records." },
+                            { t: "TDD", d: "Test-Driven Development: Writing tests before writing the code." },
+                            { t: "Version Control", d: "Managing changes to source code over time." }
+                        ]
+                    },
+                    policy_strategy: {
+                        color: '#f472b6', // Pink
+                        center: { x: -200, y: -300, z: 200 },
+                        def: "Strategic work influencing national data usage and healthcare safety.",
+                        words: [
+                            { t: "Goldacre Review", d: "'Better, Broader, Safer': The seminal review into the use of health data for research and analysis." },
+                            { t: "TREs", d: "Trusted Research Environments: Secure spaces for data analysis (recommendation of the review)." },
+                            { t: "NHS Data Strategy", d: "Influencing how the NHS collects, stores, and uses data." },
+                            { t: "Transparency", d: "Advocating for clarity on who uses data and for what purpose." },
+                            { t: "Interoperability", d: "Ensuring different NHS systems can 'talk' to each other." },
+                            { t: "Curricular Code", d: "Standardising the definition of clinical concepts across research." },
+                            { t: "Data Saves Lives", d: "Government data strategy for health and social care." },
+                            { t: "Trusted Research", d: "Principles for secure data access." }
+                        ]
+                    },
+                    research_focus: {
+                        color: '#4ade80', // Green
+                        center: { x: 300, y: -300, z: 200 },
+                        def: "Key academic domains where the institute applies its data science methods.",
+                        words: [
+                            { t: "Pharmacoepidemiology", d: "Study of the use and effects of drugs in large populations." },
+                            { t: "Clinical Audit", d: "Quality improvement process that seeks to improve patient care and outcomes." },
+                            { t: "Trial Reporting", d: "Monitoring whether clinical trials publish their results as legally/ethically required." },
+                            { t: "Health Inequalities", d: "Using data to reveal disparities in healthcare access and outcomes." },
+                            { t: "Safety Signals", d: "Detecting potential adverse effects of treatments in real-world data." },
+                            { t: "EHR Analysis", d: "Deriving insights from the complex, messy data in Electronic Health Records." },
+                            { t: "Reproducibility Crisis", d: "Addressing the issue that many scientific studies cannot be replicated." },
+                            { t: "Meta-analysis", d: "Statistical analysis that combines the results of multiple scientific studies." }
+                        ]
+                    }
+                }
+            },
+            opensafely: {
+                title: "OpenSAFELY Platform",
+                bg: "radial-gradient(circle at center, #1e293b 0%, #000000 100%)", // Slate/Blue Dark
+                clusters: {
+                    privacy_architecture: {
+                        color: '#38bdf8', // Sky Blue
+                        center: { x: -400, y: 200, z: -100 },
+                        def: "The core design principle: data never leaves the secure server. Analysis goes to the data, not vice versa.",
+                        words: [
+                            { t: "Trusted Research Environment", d: "A secure computing environment where researchers can access sensitive data remotely without downloading it." },
+                            { t: "Five Safes", d: "Framework for data security: Safe People, Safe Projects, Safe Settings, Safe Data, Safe Outputs." },
+                            { t: "Dummy Data", d: "Fake synthetic data used by researchers to write code locally before running it on real data." },
+                            { t: "In Situ Analysis", d: "Running code inside the secure data center (NHS) rather than extracting data to university servers." },
+                            { t: "Output Checking", d: "Manual review of aggregate results (tables/graphs) to ensure no individuals can be re-identified." },
+                            { t: "Privacy by Design", d: "Systems engineering approach where privacy is a core component, not an add-on." },
+                            { t: "Disclosive", d: "Data or results that might accidentally reveal a patient's identity (strictly prevented)." },
+                            { t: "Air Gap", d: "Network security measure ensuring the secure server is isolated from the open internet." },
+                            { t: "Pseudonymisation", d: "Processing personal data so it can no longer be attributed to a specific data subject without additional information." },
+                            { t: "Deterministic Linkage", d: "Exact matching of records across datasets using unique keys (like NHS number) within the secure boundary." },
+                            { t: "Transparency Notice", d: "Public logs of every single query run against the data, available for anyone to inspect." },
+                            { t: "Privacy Enhancing", d: "Technologies designed to preserve privacy (PETs)." },
+                            { t: "Differential Privacy", d: "Mathematical framework for sharing patterns in data while withholding info about individuals." }
+                        ]
+                    },
+                    infrastructure: {
+                        color: '#a78bfa', // Purple
+                        center: { x: 400, y: 200, z: -100 },
+                        def: "The technical partners and systems holding the 58 million patient records.",
+                        words: [
+                            { t: "TPP", d: "The Phoenix Partnership. One of the major EHR system suppliers in the NHS." },
+                            { t: "EMIS", d: "Egton Medical Information Systems. The other major primary care IT supplier in the UK." },
+                            { t: "NHS England", d: "The public body that oversees the National Health Service." },
+                            { t: "EHR", d: "Electronic Health Record. The digital version of a patient's paper chart." },
+                            { t: "Ben Goldacre", d: "Director of the Bennett Institute and co-founder of OpenSAFELY." },
+                            { t: "Database", d: "Structured collection of data (SQL) where the raw patient records reside." },
+                            { t: "Secure Enclave", d: "The isolated server environment provided by the EHR vendors." },
+                            { t: "Federated", d: "Data remains distributed across different servers (TPP/EMIS) rather than centralized in one new pot." },
+                            { t: "ONS Mortality", d: "Linkage to official death registry data from the Office for National Statistics." },
+                            { t: "HES Data", d: "Hospital Episode Statistics: Linkage to secondary care admissions and outpatient data." },
+                            { t: "SGSS", d: "Second Generation Surveillance System: The database of positive COVID-19 test results." },
+                            { t: "SNOMED CT", d: "Systematized Nomenclature of Medicine: The comprehensive clinical terminology used in GP records." },
+                            { t: "HPC", d: "High Performance Computing: Aggregating computing power for faster processing." },
+                            { t: "Schema", d: "The organization of data as a blueprint of how the database is constructed." }
+                        ]
+                    },
+                    methodology: {
+                        color: '#facc15', // Yellow
+                        center: { x: -200, y: -300, z: 200 },
+                        def: "The modern, reproducible software engineering practices used to define cohorts and variables.",
+                        words: [
+                            { t: "Python", d: "The primary programming language used for scripting analysis in OpenSAFELY." },
+                            { t: "Cohort Extractor", d: "The specialized tool that converts human-readable study definitions into SQL queries." },
+                            { t: "Study Definition", d: "A Python script defining the population (e.g., 'all adults > 50') and variables (e.g., 'has diabetes')." },
+                            { t: "GitHub", d: "Platform where all OpenSAFELY study code is published openly for review and reuse." },
+                            { t: "Reproducibility", d: "The ability for other researchers to run the exact same code and get the same results." },
+                            { t: "Open Source", d: "Software for which the original source code is made freely available." },
+                            { t: "Codelists", d: "Lists of clinical codes (SNOMED/Read codes) defining conditions like 'Asthma' or 'Stroke'." },
+                            { t: "Docker", d: "Platform used to containerize the analysis environment, ensuring consistency." },
+                            { t: "Declarative", d: "Defining 'what' data is needed (e.g., 'patients with asthma') rather than 'how' to query it." },
+                            { t: "Code Review", d: "The practice of having other developers/epidemiologists check analysis code before it runs." },
+                            { t: "Continuous Integration", d: "Automated testing of study code against dummy data to catch errors early." },
+                            { t: "Unit Tests", d: "Small tests to verify that a specific part of the code works." },
+                            { t: "Dependency Management", d: "Handling external libraries required by the project." }
+                        ]
+                    },
+                    impact: {
+                        color: '#4ade80', // Green
+                        center: { x: 300, y: -300, z: 200 },
+                        def: "The real-world outcomes: rapid papers, policy changes, and improved public health.",
+                        words: [
+                            { t: "COVID-19", d: "The pandemic that necessitated rapid, secure analysis of the whole population." },
+                            { t: "Nature Paper", d: "Seminal publication analyzing risk factors for COVID-19 death in 17 million people." },
+                            { t: "Vaccine Coverage", d: "Monitoring uptake of vaccines across different demographic and ethnic groups." },
+                            { t: "Ethnicity Data", d: "Crucial analysis revealing health inequalities affecting minority groups during the pandemic." },
+                            { t: "Rapid Response", d: "Delivering answers in days or weeks rather than the months/years of traditional methods." },
+                            { t: "Policy", d: "Government decisions driven by real-time data evidence." },
+                            { t: "Transparency", d: "Building public trust by showing exactly what code was run on their data." },
+                            { t: "Collaboration", d: "Working across universities and NHS bodies." },
+                            { t: "Health Inequalities", d: "Using data to highlight and address unfair and avoidable differences in health." },
+                            { t: "Learning Health System", d: "A system where data is continuously used to improve clinical practice." },
+                            { t: "Open Science", d: "The movement to make scientific research, data and dissemination accessible to all." },
+                            { t: "Real-world Evidence", d: "Evidence obtained from real world data (like EHRs) as opposed to clinical trials." },
+                            { t: "Long Covid", d: "Researching the long-term effects of COVID-19 infection." }
+                        ]
+                    }
+                }
+            },
+            openprescribing: {
+                title: "OpenPrescribing.net",
+                bg: "radial-gradient(circle at center, #064e3b 0%, #000000 100%)", // Emerald/Dark Green
+                clusters: {
+                    data_sources: {
+                        color: '#34d399', // Emerald
+                        center: { x: -400, y: 200, z: -100 },
+                        def: "The raw data powering the tool, derived from NHS prescriptions.",
+                        words: [
+                            { t: "NHS BSA", d: "NHS Business Services Authority: The source of the raw prescribing data." },
+                            { t: "Anonymised", d: "Data is aggregated at the practice level, protecting patient privacy." },
+                            { t: "Practice Level", d: "Data available for every individual GP practice in England." },
+                            { t: "ICB", d: "Integrated Care Board. The regional level of NHS administration." },
+                            { t: "PCN", d: "Primary Care Network. Groups of practices working together." },
+                            { t: "BNF Code", d: "British National Formulary code used to identify specific drugs." },
+                            { t: "Items", d: "The count of times a specific drug was prescribed." },
+                            { t: "Net Ingredient Cost", d: "The cost of the drug before discounts/dispensing fees." },
+                            { t: "PPA", d: "Prescription Pricing Authority (old name for NHS BSA division)." },
+                            { t: "Drug Tariff", d: "The amount the NHS pays for generic medicines." }
+                        ]
+                    },
+                    measures: {
+                        color: '#f472b6', // Pink
+                        center: { x: 400, y: 200, z: -100 },
+                        def: "Standardized metrics used to assess prescribing quality and safety.",
+                        words: [
+                            { t: "Price Per Unit", d: "A tool identifying where practices pay more for the same generic drug." },
+                            { t: "Ghost Branded", d: "Generic drugs prescribed with a brand name that doesn't exist, costing more." },
+                            { t: "Low Priority", d: "Treatments the NHS advises against prescribing (e.g., homeopathy, certain supplements)." },
+                            { t: "Antibiotics", d: "Monitoring stewardship to prevent antimicrobial resistance." },
+                            { t: "Opioids", d: "Tracking high-dose opioid prescribing trends." },
+                            { t: "Polypharmacy", d: "Concurrent use of multiple medications by a patient." },
+                            { t: "Standard Measures", d: "Curated list of clinical safety and cost-effectiveness indicators." },
+                            { t: "Deciles", d: "Ranking practices against peers to show relative performance." },
+                            { t: "Greener NHS", d: "Measures focused on the environmental impact of prescribing (e.g., inhalers)." },
+                            { t: "Inhalers", d: "Monitoring low carbon inhaler choices." }
+                        ]
+                    },
+                    tech_stack: {
+                        color: '#60a5fa', // Blue
+                        center: { x: -200, y: -300, z: 200 },
+                        def: "The modern open-source technology stack handling 800+ million rows of data.",
+                        words: [
+                            { t: "Google BigQuery", d: "Serverless data warehouse allowing analysis of massive datasets in seconds." },
+                            { t: "Python", d: "The primary programming language for data ingestion and analysis." },
+                            { t: "Django", d: "The web framework powering the user-facing website." },
+                            { t: "GitHub", d: "All code is open source and available for review." },
+                            { t: "API", d: "Application Programming Interface allowing others to use the data." },
+                            { t: "SQL", d: "Structured Query Language used to query the database." },
+                            { t: "Ebmdatalab", d: "The team (now Bennett Institute) that built the tool." },
+                            { t: "Open Data", d: "Philosophy that data should be freely available to everyone." },
+                            { t: "Celery", d: "Distributed task queue used to handle background jobs." },
+                            { t: "PostgreSQL", d: "Open source relational database management system." }
+                        ]
+                    },
+                    impact: {
+                        color: '#fbbf24', // Amber
+                        center: { x: 300, y: -300, z: 200 },
+                        def: "The real-world outcomes: saving money and improving safety.",
+                        words: [
+                            { t: "Cost Savings", d: "Identified hundreds of millions in potential savings for the NHS." },
+                            { t: "Accountability", d: "Making variation in prescribing transparent to the public and clinicians." },
+                            { t: "Variation", d: "Highlighting differences in prescribing habits between regions." },
+                            { t: "Audit", d: "Tools allowing practices to audit their own performance easily." },
+                            { t: "Alerts", d: "Email notifications sending performance updates to clinicians." },
+                            { t: "Research", d: "Powering academic papers on prescribing trends." },
+                            { t: "Journalism", d: "Data used by investigative journalists to uncover health stories." },
+                            { t: "Best Practice", d: "Encouraging adherence to national clinical guidelines." },
+                            { t: "NICE Guidelines", d: "National Institute for Health and Care Excellence recommendations." },
+                            { t: "Medicines Safety", d: "Monitoring prescribing to prevent harm to patients." }
+                        ]
+                    }
+                }
+            },
+            quantum: {
+                title: "Quantum Mechanics",
+                bg: "radial-gradient(circle at center, #1e1b4b 0%, #000000 100%)", // Deep Indigo
+                clusters: {
+                    fundamental_principles: {
+                        color: '#00e5ff', // Cyan
+                        center: { x: -350, y: 150, z: -100 },
+                        def: "The counter-intuitive rules that govern the subatomic world.",
+                        words: [
+                            { t: "Superposition", d: "The ability of a quantum system to exist in multiple states simultaneously until measured." },
+                            { t: "Entanglement", d: "Phenomenon where particles become linked and instantaneously affect each other regardless of distance." },
+                            { t: "Wave-Particle Duality", d: "The concept that every particle or quantum entity may be described as either a particle or a wave." },
+                            { t: "Uncertainty Principle", d: "Heisenberg's limit on the precision with which certain pairs of properties (like position and momentum) can be known." },
+                            { t: "Quantization", d: "The process of transition from a continuous understanding of physical phenomena to a discrete understanding." },
+                            { t: "Tunneling", d: "Quantum phenomenon where a particle passes through a potential energy barrier that it classically could not surmount." },
+                            { t: "Measurement Problem", d: "The issue of how (or whether) wave function collapse occurs." },
+                            { t: "Complementarity", d: "Principle that objects have complementary properties which cannot all be observed or measured simultaneously." },
+                            { t: "Quantum Foam", d: "The fluctuation of spacetime on very small scales due to quantum mechanics." },
+                            { t: "Vacuum Fluctuations", d: "Temporary appearance of energetic particles out of empty space." }
+                        ]
+                    },
+                    interpretations: {
+                        color: '#d8b4fe', // Purple
+                        center: { x: 350, y: 150, z: -100 },
+                        def: "Philosophical attempts to explain what the mathematical formalism corresponds to in reality.",
+                        words: [
+                            { t: "Copenhagen", d: "The standard interpretation: physics describes probabilities, not a physical reality beneath them." },
+                            { t: "Many-Worlds", d: "Everett's interpretation: all possible outcomes of quantum measurements are realized in some 'world' or universe." },
+                            { t: "Pilot Wave", d: "De Broglie–Bohm theory: Deterministic theory where particles have definite trajectories guided by a wave." },
+                            { t: "Objective Collapse", d: "Theories that regard the wave function collapse as a physical process." },
+                            { t: "QBism", d: "Quantum Bayesianism: The wave function reflects the personal belief of an agent about the future." },
+                            { t: "Relational", d: "States of systems are only defined relative to other systems." },
+                            { t: "Consistent Histories", d: "Generalization of Copenhagen intended to apply to cosmology and the early universe." },
+                            { t: "Hidden Variables", d: "The idea that quantum mechanics is incomplete and 'hidden' factors determine outcomes." },
+                            { t: "Transactional", d: "Interpretation describing quantum interactions as a handshake between retarded and advanced waves." },
+                            { t: "Von Neumann-Wigner", d: "Interpretation suggesting that consciousness causes wave function collapse." }
+                        ]
+                    },
+                    formalism: {
+                        color: '#f472b6', // Pink
+                        center: { x: -200, y: -250, z: 200 },
+                        def: "The mathematical tools used to describe and predict quantum systems.",
+                        words: [
+                            { t: "Schrödinger Equation", d: "The fundamental equation describing how the quantum state of a physical system changes over time." },
+                            { t: "Wavefunction", d: "A mathematical description of the quantum state of an isolated quantum system." },
+                            { t: "Hilbert Space", d: "The abstract vector space in which quantum states live." },
+                            { t: "Operators", d: "Mathematical objects that act on states to extract physical information (observables)." },
+                            { t: "Eigenstates", d: "The special states of an operator that yield a definite value when measured." },
+                            { t: "Matrices", d: "Used in Heisenberg's formulation (Matrix Mechanics) to represent physical quantities." },
+                            { t: "Bra-Ket", d: "Dirac notation: A standard notation for describing quantum states." },
+                            { t: "Hamiltonian", d: "The operator corresponding to the total energy of the system." },
+                            { t: "Born Rule", d: "Law giving the probability that a measurement of a quantum system will yield a given result." },
+                            { t: "Unitary Evolution", d: "Time evolution of a quantum state that preserves probability." }
+                        ]
+                    },
+                    applications: {
+                        color: '#4ade80', // Green
+                        center: { x: 300, y: -250, z: 200 },
+                        def: "Real-world technologies built upon quantum mechanical principles.",
+                        words: [
+                            { t: "Quantum Computing", d: "Computation using quantum bits (qubits) to solve problems faster than classical computers." },
+                            { t: "Cryptography", d: "Quantum Key Distribution (QKD) uses quantum mechanics to guarantee secure communication." },
+                            { t: "Teleportation", d: "Transferring the quantum state of a particle to another distant particle." },
+                            { t: "Superconductivity", d: "Zero electrical resistance occurring in certain materials at low temperatures." },
+                            { t: "MRI", d: "Magnetic Resonance Imaging: Uses quantum spin properties of nuclei to image the body." },
+                            { t: "Transistors", d: "Semiconductor devices relying on quantum band theory, the basis of modern electronics." },
+                            { t: "Lasers", d: "Light Amplification by Stimulated Emission of Radiation, a quantum process." },
+                            { t: "Quantum Sensors", d: "Using quantum states to measure physical quantities with extreme precision." },
+                            { t: "Quantum Dot", d: "Nanoscale semiconductor particles with quantum mechanical properties." },
+                            { t: "SQUIDs", d: "Superconducting Quantum Interference Devices: extremely sensitive magnetometers." }
+                        ]
+                    }
+                }
+            },
+            ecopsychology: {
+                title: "Ecopsychology",
+                bg: "radial-gradient(circle at center, #2e4a18 0%, #000000 100%)", // Deep Forest Green
+                clusters: {
+                    core_concepts: {
+                        color: '#bef264', // Lime
+                        center: { x: -350, y: 150, z: -100 },
+                        def: "Foundational ideas bridging psychology and ecology, proposing that the human mind is inherently connected to the natural world.",
+                        words: [
+                            { t: "Biophilia", d: "The hypothesis that humans have an innate tendency to seek connections with nature and other forms of life." },
+                            { t: "Ecological Unconscious", d: "The deep, ancestral connection to the web of life that lies at the core of the human psyche." },
+                            { t: "Ecological Self", d: "Widening one's sense of self to include the natural world, moving beyond the ego." },
+                            { t: "Reciprocity", d: "A relationship of mutual exchange and benefit between humans and the more-than-human world." },
+                            { t: "Gaia Theory", d: "The view of the earth as a synergistic, self-regulating, complex system." },
+                            { t: "Biocentrism", d: "The ethical viewpoint that extends inherent value to all living things." },
+                            { t: "Place Attachment", d: "The emotional bond between person and place." },
+                            { t: "Topophilia", d: "A strong sense of place, which often mixes with the sense of cultural identity." },
+                            { t: "Ecosystemic", d: "Viewing the individual as part of a larger ecosystem." },
+                            { t: "Anthropocentrism", d: "Regarding humankind as the central or most important element of existence." }
+                        ]
+                    },
+                    theoretical_roots: {
+                        color: '#d8b4fe', // Light Purple
+                        center: { x: 350, y: 150, z: -100 },
+                        def: "The philosophical and scientific frameworks that inform ecopsychology.",
+                        words: [
+                            { t: "Deep Ecology", d: "Environmental philosophy regarding human life as just one of many equal components of a global ecosystem." },
+                            { t: "Systems Theory", d: "The interdisciplinary study of systems as they relate to one another within a larger, more complex system." },
+                            { t: "Theodore Roszak", d: "Historian who coined the term 'ecopsychology' in his 1992 book 'The Voice of the Earth'." },
+                            { t: "Indigenous Wisdom", d: "Traditional ecological knowledge and spiritual connection to land often marginalized by Western psychology." },
+                            { t: "Arne Naess", d: "Norwegian philosopher and founder of Deep Ecology." },
+                            { t: "Gestalt Psychology", d: "Emphasis on wholeness and contact with the environment." },
+                            { t: "Carl Jung", d: "Concepts of the collective unconscious and archetypes often applied to nature connection." },
+                            { t: "Phenomenology", d: "The study of direct experience and consciousness." },
+                            { t: "Transpersonal Psychology", d: "Psychology integrating spiritual and transcendent aspects of human experience." },
+                            { t: "Romanticism", d: "Historical movement emphasizing emotion and nature." }
+                        ]
+                    },
+                    applied_practice: {
+                        color: '#67e8f9', // Cyan
+                        center: { x: -200, y: -250, z: 200 },
+                        def: "Therapeutic and educational methods used to heal the human-nature relationship.",
+                        words: [
+                            { t: "Ecotherapy", d: "Therapeutic treatment involving outdoor activities in nature to improve mental and physical health." },
+                            { t: "Wilderness Therapy", d: "Therapy involving wilderness expeditions for personal growth and social rehabilitation." },
+                            { t: "Shinrin-yoku", d: "Japanese practice of 'Forest Bathing'; taking in the forest atmosphere for health." },
+                            { t: "Horticultural Therapy", d: "Engagement in gardening and plant-based activities as a therapeutic modality." },
+                            { t: "Animal-Assisted", d: "Using animals to help people recover from or cope with health problems." },
+                            { t: "Green Care", d: "The use of agricultural farms and the biotic and abiotic elements of nature for health promotion." },
+                            { t: "Vision Quest", d: "A rite of passage in some cultures involving solitary time in nature." },
+                            { t: "Nature Journaling", d: "The practice of recording observations, feelings, and perceptions of the natural world." },
+                            { t: "Adventure Therapy", d: "Using adventure activities to aid therapeutic healing." },
+                            { t: "Green Gym", d: "Outdoor nature conservation activities for health and fitness." }
+                        ]
+                    },
+                    psychological_impact: {
+                        color: '#fdba74', // Orange
+                        center: { x: 300, y: -250, z: 200 },
+                        def: "How the state of the environment affects mental health and vice versa.",
+                        words: [
+                            { t: "Nature Deficit", d: "The hypothesis that alienation from nature results in diminished use of the senses and attention difficulties." },
+                            { t: "Eco-anxiety", d: "Chronic fear of environmental doom." },
+                            { t: "Solastalgia", d: "The distress caused by environmental change affecting one's home environment." },
+                            { t: "Restoration Theory", d: "Attention Restoration Theory (ART): Nature renews cognitive resources." },
+                            { t: "Stress Reduction", d: "Stress Reduction Theory (SRT): Unconscious autonomic response to natural environments." },
+                            { t: "Environmental Grief", d: "The grief felt in relation to experienced or anticipated ecological loss." },
+                            { t: "Ecological Alienation", d: "The sense of separation or disconnection from the natural world." },
+                            { t: "Resilience", d: "The capacity to recover quickly from difficulties, fostered by nature connection." },
+                            { t: "Biophobia", d: "Fear of nature." },
+                            { t: "Psychoterratic", d: "Earth-related mental health conditions." }
+                        ]
+                    }
+                }
+            },
+            permaculture: {
+                title: "Permaculture Design",
+                bg: "radial-gradient(circle at center, #14532d 0%, #000000 100%)", // Deep Earthy Green
+                clusters: {
+                    core_ethics: {
+                        color: '#4ade80', // Bright Green
+                        center: { x: -350, y: 150, z: -100 },
+                        def: "The three foundational ethical principles upon which all permaculture design rests.",
+                        words: [
+                            { t: "Earth Care", d: "Provision for all life systems to continue and multiply. Conserving soil, forests, and water." },
+                            { t: "People Care", d: "Provision for people to access those resources necessary for their existence." },
+                            { t: "Fair Share", d: "Setting limits to population and consumption, and redistributing surpluses." },
+                            { t: "Stewardship", d: "Responsible planning and management of resources for future generations." },
+                            { t: "Holistic", d: "Viewing systems as whole entities rather than simply as a collection of parts." },
+                            { t: "Sustainability", d: "Meeting the needs of the present without compromising the ability of future generations to meet their own needs." },
+                            { t: "Regeneration", d: "Processes that restore, renew or revitalize their own sources of energy and materials." },
+                            { t: "Future Care", d: "Ensuring resources for future generations." },
+                            { t: "Life Ethic", d: "Respecting all life forms." }
+                        ]
+                    },
+                    design_principles: {
+                        color: '#fbbf24', // Amber/Sun
+                        center: { x: 350, y: 150, z: -100 },
+                        def: "The 12 principles defined by David Holmgren to guide sustainable design.",
+                        words: [
+                            { t: "Observe and Interact", d: "By taking time to engage with nature we can design solutions that suit our particular situation." },
+                            { t: "Catch and Store Energy", d: "Developing systems that collect resources when they are abundant to use in times of need." },
+                            { t: "Obtain a Yield", d: "Ensure that you are getting truly useful rewards as part of the work that you are doing." },
+                            { t: "Self-Regulation", d: "Apply self-regulation and accept feedback to prevent over-consumption." },
+                            { t: "Renewables", d: "Use and value renewable resources and services." },
+                            { t: "Produce No Waste", d: "By valuing and making use of all the resources that are available to us, nothing goes to waste." },
+                            { t: "Patterns to Details", d: "Step back to observe patterns in nature and society, then fill in the details." },
+                            { t: "Integration", d: "Integrate rather than segregate. Many hands make light work." },
+                            { t: "Slow and Small", d: "Small and slow systems are easier to maintain than big ones, making better use of local resources." },
+                            { t: "Diversity", d: "Diversity reduces vulnerability to a variety of threats and takes advantage of the unique nature of the environment." },
+                            { t: "Edges", d: "Use edges and value the marginal. The interface between things is where the most interesting events take place." },
+                            { t: "Change", d: "Creatively use and respond to change." },
+                            { t: "Feedback Loops", d: "Using outputs to regulate inputs." },
+                            { t: "Succession", d: "Understanding ecological progression over time." }
+                        ]
+                    },
+                    zoning_system: {
+                        color: '#f472b6', // Pink/Floral
+                        center: { x: -200, y: -250, z: 200 },
+                        def: "A method of organizing a site based on the frequency of human use and plant/animal needs.",
+                        words: [
+                            { t: "Zone 0", d: "The home center. The house itself." },
+                            { t: "Zone 1", d: "The area nearest the house. Requires frequent attention (e.g., kitchen garden, herb spiral)." },
+                            { t: "Zone 2", d: "Semi-intense area. Poultry, orchard, compost bins. Visited daily." },
+                            { t: "Zone 3", d: "Farmland area. Main crop production, pasture for large livestock. Visited weekly." },
+                            { t: "Zone 4", d: "Semi-wild area. Forage, timber production. Minimal care." },
+                            { t: "Zone 5", d: "The wilderness. Unmanaged natural ecosystem for observation and inspiration." },
+                            { t: "Sector Analysis", d: "Mapping energies entering the site (sun, wind, fire, water) to place elements correctly." },
+                            { t: "Slope", d: "Considering elevation and gravity in design, especially for water flow." },
+                            { t: "Wildfire Sector", d: "Designing for fire safety." },
+                            { t: "Microclimate", d: "Local climate of a small area." }
+                        ]
+                    },
+                    regenerative_practices: {
+                        color: '#38bdf8', // Water/Blue
+                        center: { x: 300, y: -250, z: 200 },
+                        def: "Specific techniques and methods used to implement permaculture designs.",
+                        words: [
+                            { t: "Swales", d: "Water-harvesting ditches on contour used to slow, spread, and sink rainwater." },
+                            { t: "Hugelkultur", d: "Raised garden beds built over woody debris to improve soil fertility and water retention." },
+                            { t: "Food Forest", d: "A diverse planting of edible plants that attempts to mimic the ecosystems and patterns found in nature." },
+                            { t: "Guilds", d: "A group of plants (and animals) that support each other (e.g., the Three Sisters)." },
+                            { t: "Keyline Design", d: "A landscaping technique of maximizing beneficial use of water resources of a piece of land." },
+                            { t: "Sheet Mulching", d: "Layering organic materials (cardboard, compost, straw) to suppress weeds and build soil." },
+                            { t: "Composting", d: "The natural process of recycling organic matter into a valuable fertilizer." },
+                            { t: "Coppicing", d: "Traditional woodland management technique that exploits the capacity of many species to put out new shoots." },
+                            { t: "Agroforestry", d: "The intentional integration of trees and shrubs into crop and animal farming systems." },
+                            { t: "Greywater", d: "Relatively clean waste water from baths, sinks, washing machines, and other kitchen appliances." },
+                            { t: "Polyculture", d: "Growing multiple crops in the same space." },
+                            { t: "Vermicompost", d: "Using worms to break down organic waste." }
+                        ]
+                    }
+                }
+            },
+            ai_licensing: {
+                title: "AI Research Licensing",
+                bg: "radial-gradient(circle at center, #312e81 0%, #000000 100%)", // Indigo/Black
+                clusters: {
+                    open_access: {
+                        color: '#22d3ee', // Cyan
+                        center: { x: -350, y: 150, z: -100 },
+                        def: "Models that allow data to be used freely, often with minimal restrictions like attribution.",
+                        words: [
+                            { t: "CC BY", d: "Creative Commons Attribution: Allows use, distribution, and reproduction with credit." },
+                            { t: "CC0", d: "Public Domain Dedication: Waiving all copyright and related rights." },
+                            { t: "Open Government Licence", d: "UK licence for public sector information allowing broad reuse." },
+                            { t: "MIT License", d: "Permissive software license requiring only preservation of copyright/license notices." },
+                            { t: "Apache 2.0", d: "Permissive license that also provides an express grant of patent rights." },
+                            { t: "Open Data", d: "Data that can be freely used, re-used and redistributed by anyone." },
+                            { t: "ShareAlike", d: "Requirement that derivative works be distributed under the same license terms." },
+                            { t: "Permissive", d: "Licenses with minimal restrictions on how the software or data can be used." },
+                            { t: "The Unlicense", d: "Public domain dedication for software." },
+                            { t: "BSD", d: "Permissive free software licenses." }
+                        ]
+                    },
+                    restricted_access: {
+                        color: '#f87171', // Red/Salmon
+                        center: { x: 350, y: 150, z: -100 },
+                        def: "Licensing options that limit usage to specific purposes, user groups, or conditions.",
+                        words: [
+                            { t: "NonCommercial", d: "CC license provision prohibiting use for commercial purposes." },
+                            { t: "NoDerivatives", d: "CC license provision prohibiting distribution of adapted versions." },
+                            { t: "Embargo", d: "Period during which access to data is restricted before full release." },
+                            { t: "Dual Licensing", d: "Releasing under both an open source and a commercial license." },
+                            { t: "Research Only", d: "Access granted exclusively for academic or non-profit research purposes." },
+                            { t: "Proprietary", d: "Data or software owned by an individual or company with restricted rights." },
+                            { t: "Fair Use", d: "Legal doctrine permitting limited use of copyrighted material without permission." },
+                            { t: "Gated Access", d: "Data that requires registration, application, or approval to access." },
+                            { t: "Clickwrap", d: "Agreement where user accepts terms by clicking a button." },
+                            { t: "EULA", d: "End User License Agreement." }
+                        ]
+                    },
+                    legal_frameworks: {
+                        color: '#a78bfa', // Purple
+                        center: { x: -200, y: -250, z: 200 },
+                        def: "The laws and regulations governing intellectual property and data protection.",
+                        words: [
+                            { t: "GDPR", d: "General Data Protection Regulation: EU law on data protection and privacy." },
+                            { t: "Copyright", d: "Legal right granting the creator of original work exclusive rights to its use." },
+                            { t: "Sui Generis", d: "Database rights protecting the investment in obtaining and verifying contents." },
+                            { t: "Text and Data Mining", d: "Exceptions in copyright law allowing analysis of data for research." },
+                            { t: "Informed Consent", d: "Permission granted in full knowledge of possible consequences." },
+                            { t: "Anonymisation", d: "Process of removing personally identifiable information from data sets." },
+                            { t: "Liability", d: "Legal responsibility for acts or omissions, important in AI outputs." },
+                            { t: "Attribution", d: "Ascribing a work or remark to a particular author or artist." },
+                            { t: "Database Directive", d: "EU directive on legal protection of databases." },
+                            { t: "Moral Rights", d: "Rights of creators of copyrighted works." }
+                        ]
+                    },
+                    governance: {
+                        color: '#4ade80', // Green
+                        center: { x: 300, y: -250, z: 200 },
+                        def: "Structures and mechanisms for managing data access, sharing, and ethical use.",
+                        words: [
+                            { t: "Data Trust", d: "Legal structure providing independent stewardship of data." },
+                            { t: "Data Commons", d: "Shared virtual spaces where data is co-located with computing services." },
+                            { t: "Licensing Agreement", d: "Legal contract between two parties specifying terms of use." },
+                            { t: "DPIA", d: "Data Protection Impact Assessment: Process to identify and minimise data protection risks." },
+                            { t: "Responsible AI", d: "Governance ensuring AI is ethical, transparent, and accountable." },
+                            { t: "Standard Clauses", d: "Pre-approved contractual terms used to ensure compliance." },
+                            { t: "Interoperability", d: "Ability of computer systems or software to exchange and make use of information." },
+                            { t: "Stewardship", d: "Responsible planning and management of data resources." },
+                            { t: "Data Altruism", d: "Voluntary sharing of data for the common good." },
+                            { t: "Data Coop", d: "Data cooperative owned and controlled by members." }
+                        ]
+                    }
+                }
+            },
+            philosophy: {
+                title: "Metaphysics & Epistemology",
+                bg: "radial-gradient(circle at center, #1f1f1f 0%, #000000 100%)",
+                clusters: {
+                    ontology: { 
+                        color: '#f472b6', center: { x: -500, y: 0, z: 0 }, 
+                        def: "Study of being.", 
+                        words: [
+                            { t: "Being", d: "Nature of existence." },
+                            { t: "Existence", d: "State of being alive/present." },
+                            { t: "Reality", d: "Things as they actually exist." },
+                            { t: "Substance", d: "Possesses properties." },
+                            { t: "Dualism", d: "Mind and body separate." },
+                            { t: "Monism", d: "Oneness." },
+                            { t: "Property", d: "Attribute or quality." },
+                            { t: "Essence", d: "Fundamental nature." },
+                            { t: "Metaphysics", d: "First principles." },
+                            { t: "Causality", d: "Cause and effect." },
+                            { t: "Identity", d: "Relation to self." },
+                            { t: "Modality", d: "Necessity and possibility." },
+                            { t: "Universal", d: "Repeatable entity." },
+                            { t: "Particular", d: "Concrete object." },
+                            { t: "Physicalism", d: "Everything is physical." },
+                            { t: "Idealism", d: "Reality is mental." },
+                            { t: "Space", d: "Three-dimensional extent." },
+                            { t: "Time", d: "Continued progress." },
+                            { t: "Necessity", d: "Could not be otherwise." },
+                            { t: "Contingency", d: "Possible but not certain." },
+                            { t: "Nihilism", d: "Rejection of religious and moral principles." },
+                            { t: "Existentialism", d: "Philosophical theory emphasizing existence of the individual." }
+                        ] 
+                    },
+                    epistemology: { 
+                        color: '#60a5fa', center: { x: 0, y: 0, z: 0 }, 
+                        def: "Study of knowledge.", 
+                        words: [
+                            { t: "Knowledge", d: "Justified true belief." },
+                            { t: "Belief", d: "Acceptance of truth." },
+                            { t: "Truth", d: "Accordance with fact." },
+                            { t: "Justification", d: "Reason for belief." },
+                            { t: "Skepticism", d: "Knowledge is impossible." },
+                            { t: "Rationalism", d: "Reason is foundation." },
+                            { t: "A priori", d: "Theoretical deduction." },
+                            { t: "A posteriori", d: "From observation." },
+                            { t: "Foundationalism", d: "Based on basic beliefs." },
+                            { t: "Coherentism", d: "Beliefs cohere together." },
+                            { t: "Internalism", d: "Justification is internal." },
+                            { t: "Externalism", d: "Justification is external." },
+                            { t: "Perception", d: "Sensory interpretation." },
+                            { t: "Intuition", d: "Immediate understanding." },
+                            { t: "Testimony", d: "Solemn attestation." },
+                            { t: "Reliabilism", d: "Reliable process." },
+                            { t: "Fallibilism", d: "We could be wrong." },
+                            { t: "Certainty", d: "Firm conviction." },
+                            { t: "Evidence", d: "Facts indicating truth." },
+                            { t: "Virtue Epistemology", d: "Focus on intellectual virtues." },
+                            { t: "Contextualism", d: "Knowledge depends on context." }
+                        ] 
+                    },
+                    empiricism: { 
+                        color: '#facc15', center: { x: 500, y: 0, z: 0 }, 
+                        def: "Knowledge from senses.", 
+                        words: [
+                            { t: "Experience", d: "Practical contact." },
+                            { t: "Sensation", d: "Physical feeling." },
+                            { t: "Induction", d: "Inference of general law." },
+                            { t: "Observation", d: "Gaining information." },
+                            { t: "Tabula Rasa", d: "Blank slate." },
+                            { t: "John Locke", d: "Enlightenment thinker." },
+                            { t: "David Hume", d: "Philosophical empiricism." },
+                            { t: "Sense Data", d: "Objects of perception." },
+                            { t: "Verification", d: "Establishing truth." },
+                            { t: "Experiment", d: "Scientific procedure." },
+                            { t: "Phenomenalism", d: "Objects are phenomena." },
+                            { t: "Positivism", d: "Scientific verification." },
+                            { t: "Immediacy", d: "Direct relevance." },
+                            { t: "Associationism", d: "Mind organizes ideas." },
+                            { t: "Constructivism", d: "Learners construct knowledge." },
+                            { t: "Materialism", d: "Nothing but matter." },
+                            { t: "Pragmatism", d: "Practical application." },
+                            { t: "Scientism", d: "Science as ultimate." },
+                            { t: "Reductionism", d: "Complex to simple." },
+                            { t: "Logical Positivism", d: "Only verifiable statements are meaningful." },
+                            { t: "Quine", d: "Critic of logical positivism." }
+                        ] 
+                    }
+                }
+            },
+            consciousness: {
+                title: "Theories of Consciousness",
+                bg: "radial-gradient(circle at center, #111 0%, #000 100%)",
+                clusters: {
+                    physicalism: { 
+                        color: '#00e5ff', center: { x: -350, y: 150, z: -100 }, 
+                        def: "Everything is physical.", 
+                        words: [
+                            { t: "Neural Correlates", d: "Minimal neuronal events for a percept." },
+                            { t: "Global Workspace", d: "Information broadcast to system." },
+                            { t: "Functionalism", d: "Mental states defined by function." },
+                            { t: "Eliminativism", d: "Conscious states are illusions." },
+                            { t: "Identity Theory", d: "Mental states are brain states." },
+                            { t: "Daniel Dennett", d: "Consciousness is an illusion." },
+                            { t: "Emergence", d: "Novel property from complex systems." },
+                            { t: "Reductionism", d: "Explaining complex via simple." },
+                            { t: "Crick & Koch", d: "Pioneers of NCC search." },
+                            { t: "Software", d: "Mind as software." },
+                            { t: "Causal Closure", d: "Physical events have physical causes." },
+                            { t: "Illusionism", d: "Phenomenal consciousness is illusion." },
+                            { t: "Brain State", d: "Snapshot of brain activity." },
+                            { t: "Token Identity", d: "Each mental event is a physical event." },
+                            { t: "Supervenience", d: "Mental properties depend on physical properties." }
+                        ] 
+                    },
+                    dualism: { 
+                        color: '#d500f9', center: { x: 350, y: 150, z: -100 }, 
+                        def: "Mind and body are distinct.", 
+                        words: [
+                            { t: "René Descartes", d: "Formulated substance dualism." },
+                            { t: "Hard Problem", d: "Why do we have qualia? (Chalmers)." },
+                            { t: "Qualia", d: "Instances of subjective experience." },
+                            { t: "Zombie Argument", d: "Being identical to human but no consciousness." },
+                            { t: "Mary's Room", d: "Knowledge argument about color." },
+                            { t: "Substance Dualism", d: "Two foundations: mental and physical." },
+                            { t: "Property Dualism", d: "One substance, two property types." },
+                            { t: "Epiphenomenalism", d: "Mental caused by physical, no effect back." },
+                            { t: "Interactionism", d: "Mind and body interact." },
+                            { t: "David Chalmers", d: "Formulated the Hard Problem." },
+                            { t: "Subjectivity", d: "Personal perspective." },
+                            { t: "Non-physical", d: "Outside matter and energy." },
+                            { t: "Ghost in the Machine", d: "Ryle's critique of dualism." },
+                            { t: "Explanatory Gap", d: "Gap between physical and feeling." },
+                            { t: "Parallelism", d: "Mind and body run in parallel." },
+                            { t: "Occasionalism", d: "God causes mental/physical events." }
+                        ] 
+                    },
+                    panpsychism: { 
+                        color: '#ffab00', center: { x: -200, y: -250, z: 200 }, 
+                        def: "Mind is everywhere.", 
+                        words: [
+                            { t: "Fundamental", d: "Base-level reality." },
+                            { t: "Philip Goff", d: "Leading proponent." },
+                            { t: "Russellian Monism", d: "Consciousness is intrinsic nature." },
+                            { t: "Combination Problem", d: "How micro-minds combine." },
+                            { t: "Integrated Information", d: "IIT Theory (Phi)." },
+                            { t: "Ubiquitous", d: "Found everywhere." },
+                            { t: "Micropsychism", d: "Atoms have consciousness." },
+                            { t: "Cosmopsychism", d: "Universe is the conscious entity." },
+                            { t: "Intrinsic Nature", d: "What an object is in itself." },
+                            { t: "Spinoza", d: "God and Nature are one." },
+                            { t: "Whitehead", d: "Process philosophy." },
+                            { t: "Galen Strawson", d: "Physicalism entails panpsychism." },
+                            { t: "Proto-consciousness", d: "Primitive form of mind." },
+                            { t: "Tononi", d: "Creator of IIT." },
+                            { t: "Panprotopsychism", d: "Pre-conscious fundamental properties." },
+                            { t: "Neutral Monism", d: "Reality is neither mental nor physical." }
+                        ] 
+                    },
+                    idealism: { 
+                        color: '#00e676', center: { x: 300, y: -250, z: 200 }, 
+                        def: "Reality is mental.", 
+                        words: [
+                            { t: "Bernardo Kastrup", d: "Analytic Idealism." },
+                            { t: "Donald Hoffman", d: "Conscious Realism/Interface Theory." },
+                            { t: "Biocentrism", d: "Biology central to cosmos." },
+                            { t: "George Berkeley", d: "To be is to be perceived." },
+                            { t: "Mentalism", d: "Phenomena explicable by mind." },
+                            { t: "The Matrix", d: "Simulated reality metaphor." },
+                            { t: "Dream", d: "Analogy for reality." },
+                            { t: "Universal Mind", d: "Single overarching consciousness." },
+                            { t: "Interface Theory", d: "Perception hides truth." },
+                            { t: "Non-duality", d: "Single indivisible reality." },
+                            { t: "Consciousness Only", d: "Nothing outside consciousness." },
+                            { t: "Dissociation", d: "Process creating individual minds." },
+                            { t: "Subjective Reality", d: "Reality dependent on mind." },
+                            { t: "Schrödinger", d: "Multiplicity is apparent." },
+                            { t: "Solipsism", d: "Only one's mind is sure to exist." },
+                            { t: "Transcendental Idealism", d: "Mind structures reality (Kant)." }
+                        ] 
+                    }
+                }
+            }
+        };
+
+        // --- Global Variables ---
+        let camera, scene, renderer, controls;
+        let isAnimating = true;
+        let wordObjects = []; 
+        let baseRotationSpeed = 0.5;
+        
+        // Intro Animation Variables
+        let isIntroAnimating = false;
+        let introProgress = 0;
+        const startPos = new THREE.Vector3(0, 2000, 5000);
+        const endPos = new THREE.Vector3(0, 500, 1600);
+        
+        // --- Setup ---
+        function init() {
+            const container = document.getElementById('container');
+
+            // 1. Camera
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
+            
+            // 2. Scene
+            scene = new THREE.Scene();
+
+            // 3. Renderer
+            renderer = new CSS3DRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // Ensure proper absolute positioning so pointer events cascade correctly
+            renderer.domElement.style.position = 'absolute';
+            renderer.domElement.style.top = '0px';
+            container.appendChild(renderer.domElement);
+
+            // 4. Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = baseRotationSpeed;
+
+            // 5. Initial Load - Default to Ethics
+            loadDataset('ethics');
+
+            // 6. Events
+            window.addEventListener('resize', onWindowResize);
+            
+            // UI Listeners
+            document.getElementById('toggle-anim').addEventListener('click', toggleAnimation);
+            document.getElementById('reset-cam').addEventListener('click', () => startIntroAnimation());
+            document.getElementById('close-tooltip').addEventListener('click', closeTooltip);
+            document.getElementById('dataset-select').addEventListener('change', (e) => {
+                loadDataset(e.target.value);
+            });
+            document.getElementById('tooltip-overlay').addEventListener('click', (e) => {
+                // Only close if clicking the background overlay, not the card itself
+                if(e.target.id === 'tooltip-overlay') closeTooltip();
+            });
+            
+            // Speed Control
+            document.getElementById('speed-slider').addEventListener('input', (e) => {
+                baseRotationSpeed = parseFloat(e.target.value);
+                if(isAnimating) {
+                    controls.autoRotateSpeed = baseRotationSpeed;
+                }
+            });
+
+            animate();
+        }
+
+        function loadDataset(key) {
+            // 1. Clear old scene
+            wordObjects.forEach(obj => {
+                scene.remove(obj);
+            });
+            wordObjects = [];
+
+            // 2. Get Data
+            const dataset = databases[key];
+            
+            // 3. Update UI
+            document.body.style.backgroundImage = dataset.bg;
+            document.getElementById('main-title').textContent = dataset.title;
+
+            // 4. Build New Scene
+            Object.keys(dataset.clusters).forEach(clusterKey => {
+                const groupData = dataset.clusters[clusterKey];
+                
+                // Title Node
+                const titleEl = document.createElement('div');
+                titleEl.className = 'element title-node';
+                titleEl.textContent = clusterKey.replace('_', ' ');
+                titleEl.style.color = groupData.color;
+                titleEl.style.fontSize = '50px';
+                addInteraction(titleEl, clusterKey, groupData.def);
+                
+                const titleObj = new CSS3DObject(titleEl);
+                titleObj.position.set(groupData.center.x, groupData.center.y, groupData.center.z);
+                scene.add(titleObj);
+                wordObjects.push(titleObj);
+
+                // Sub Nodes
+                const count = groupData.words.length;
+                const radius = 200;
+                groupData.words.forEach((wordObj, i) => {
+                    const phi = Math.acos(-1 + (2 * i) / count);
+                    const theta = Math.sqrt(count * Math.PI) * phi;
+                    const x = radius * Math.cos(theta) * Math.sin(phi) + groupData.center.x;
+                    const y = radius * Math.sin(theta) * Math.sin(phi) + groupData.center.y;
+                    const z = radius * Math.cos(phi) + groupData.center.z;
+
+                    // Jitter
+                    const jitter = 30;
+                    const jX = (Math.random() - 0.5) * jitter;
+                    const jY = (Math.random() - 0.5) * jitter;
+                    const jZ = (Math.random() - 0.5) * jitter;
+
+                    const el = document.createElement('div');
+                    el.className = 'element sub-node';
+                    el.textContent = wordObj.t;
+                    el.style.color = groupData.color;
+                    const fontSize = Math.floor(Math.random() * (18 - 12 + 1) + 12);
+                    el.style.fontSize = fontSize + 'px';
+
+                    addInteraction(el, wordObj.t, wordObj.d);
+
+                    const object = new CSS3DObject(el);
+                    object.position.set(x + jX, y + jY, z + jZ);
+                    scene.add(object);
+                    wordObjects.push(object);
+                });
+            });
+
+            // 5. Start Cinematic Intro
+            startIntroAnimation();
+        }
+
+        function startIntroAnimation() {
+            isIntroAnimating = true;
+            introProgress = 0;
+            controls.autoRotate = false; 
+            camera.position.copy(startPos);
+            controls.target.set(0,0,0);
+        }
+
+        function addInteraction(domElement, title, definition) {
+            // Use pointerdown to be more robust than click with OrbitControls
+            domElement.addEventListener('pointerdown', (e) => {
+                e.stopPropagation(); 
+                showTooltip(title, definition);
+                setAnimationState(false); 
+            });
+
+            // Hover Handler (Slow Down)
+            domElement.addEventListener('mouseenter', () => {
+               if(isAnimating) {
+                   controls.autoRotateSpeed = 0.1; // Drift
+               }
+            });
+            
+            // Hover Out Handler (Resume Speed)
+            domElement.addEventListener('mouseleave', () => {
+                if(isAnimating) {
+                    controls.autoRotateSpeed = baseRotationSpeed;
+                }
+            });
+        }
+
+        function showTooltip(title, definition) {
+            const overlay = document.getElementById('tooltip-overlay');
+            const card = document.getElementById('tooltip-card');
+            const tTitle = document.getElementById('tooltip-title');
+            const tDef = document.getElementById('tooltip-def');
+            const tLink = document.getElementById('tooltip-link');
+
+            tTitle.textContent = title.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            tDef.textContent = definition;
+            // Robust Wikipedia Link
+            const wikiSlug = title.trim().replace(/\s+/g, '_');
+            tLink.href = `https://en.wikipedia.org/wiki/${wikiSlug}`;
+
+            // Show logic with setTimeout to ensure transition plays
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                card.classList.add('visible');
+            }, 10);
+        }
+
+        function closeTooltip() {
+            const overlay = document.getElementById('tooltip-overlay');
+            const card = document.getElementById('tooltip-card');
+            card.classList.remove('visible');
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+                setAnimationState(true); // Resume animation
+            }, 300); // Match transition duration
+        }
+
+        function setAnimationState(state) {
+            isAnimating = state;
+            controls.autoRotate = state;
+            
+            if(state) controls.autoRotateSpeed = baseRotationSpeed;
+
+            const btn = document.getElementById('toggle-anim');
+            if (state) {
+                btn.classList.add('active');
+                btn.textContent = "Auto-Pilot";
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = "Resume";
+            }
+        }
+
+        function toggleAnimation() {
+            if (isIntroAnimating) return;
+            setAnimationState(!isAnimating);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isIntroAnimating) {
+                introProgress += 0.008; 
+                if (introProgress >= 1) {
+                    introProgress = 1;
+                    isIntroAnimating = false;
+                    // Only resume if tooltip isn't open
+                    if (!document.getElementById('tooltip-card').classList.contains('visible')) {
+                        setAnimationState(true);
+                    }
+                }
+                const t = introProgress * introProgress * (3 - 2 * introProgress);
+                camera.position.lerpVectors(startPos, endPos, t);
+                camera.lookAt(0,0,0);
+            } else {
+                controls.update();
+            }
+            
+            const q = camera.quaternion;
+            for (let i = 0; i < wordObjects.length; i++) {
+                wordObjects[i].quaternion.copy(q);
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>

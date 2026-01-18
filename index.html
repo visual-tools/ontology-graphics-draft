@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ontology.graphics | Applied Ontology Graphics & Tools</title>
+    <meta name="description"
+        content="Premium collection of applied ontology graphics and whitelabelable tools for complex data visualization.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="background-mesh"></div>
+
+    <header class="glass-header">
+        <nav>
+            <div class="logo">ontology<span class="highlight">.graphics</span></div>
+            <ul class="nav-links">
+                <li><a href="#graphics">Graphics</a></li>
+                <li><a href="#tools">Tools</a></li>
+                <li><a href="blog.html">Blog</a></li>
+                <li><a href="whitepaper.html">White Paper</a></li>
+                <li><a href="#contact" class="cta-button">Get Access</a></li>
+            </ul>
+            <div class="mobile-menu-toggle">
+                <span></span><span></span>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Complexity <span class="gradient-text">Made Simple</span></h1>
+                <p>Applied ontology graphics and whitelabelable tools for deep knowledge representation.</p>
+                <div class="hero-actions">
+                    <a href="#tools" class="primary-btn">Explore Tools</a>
+                    <a href="#graphics" class="secondary-btn">View Graphics</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <!-- Abstract 3D shape or node network animation can go here -->
+                <div class="glow-orb"></div>
+            </div>
+        </section>
+
+        <section id="tools" class="section">
+            <div class="section-header">
+                <h2>Featured Tools</h2>
+                <p>Deploy powerful visualization engines under your own brand.</p>
+
+                <!-- Search & Controls -->
+                <div class="search-controls glass-panel"
+                    style="margin: 2rem 0; padding: 1.5rem; border-radius: 12px; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <input type="text" id="tool-search" placeholder="Search tools..."
+                            style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; outline: none;">
+                    </div>
+                    <div class="filter-group" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <select id="filter-type"
+                            style="padding: 0.75rem 2rem 0.75rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7em top 50%; background-size: .65em auto;">
+                            <option value="">All Types</option>
+                            <option value="simulation">Simulation</option>
+                            <option value="network">Network/Graph</option>
+                            <option value="3d">3D/WebGL</option>
+                            <option value="flow">Flow/Sankey</option>
+                            <option value="chart">Chart/Statistics</option>
+                            <option value="interactive">Interactive Model</option>
+                        </select>
+
+                        <select id="filter-topic"
+                            style="padding: 0.75rem 2rem 0.75rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7em top 50%; background-size: .65em auto;">
+                            <option value="">All Topics</option>
+                            <option value="systems">System Dynamics</option>
+                            <option value="data">Data/IP</option>
+                            <option value="politics">Politics/Sociology</option>
+                            <option value="nlp">NLP/Semantics</option>
+                            <option value="health">Healthcare</option>
+                            <option value="art">Art/Metaphor</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="tools-grid">
+                <!-- Polyscope -->
+                <article class="tool-card" data-vis-type="simulation" data-topic="systems">
+                    <div class="tool-visual"
+                        style="background-color: #3b82f6; display: flex; align-items: center; justify-content: center;">
+                        <img src="system_steward.png" alt="System Steward v3.0"
+                            style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </div>
+                    <div class="tool-content">
+                        <h3>System Steward</h3>
+                        <p>Cognitive Fit & System Dynamics Interface for complex adaptive systems.</p>
+                        <div class="tool-tags">
+                            <span>Dynamics</span>
+                            <span>Simulation</span>
+                        </div>
+                        <a href="featured.html" class="tool-link">Launch Tool <span class="arrow">→</span></a>
+                    </div>
+                </article>
+
+                <!-- Polyscope -->
+                <article class="tool-card" data-vis-type="network" data-topic="data">
+                    <div class="tool-visual">
+                        <img src="polyscope.png" alt="Polyscope Visualization"
+                            style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </div>
+                    <div class="tool-content">
+                        <h3>Polyscope</h3>
+                        <p>A visual tool for exploring multidimensional data and IP ownership narratives.</p>
+                        <div class="tool-tags">
+                            <span>Visualization</span>
+                            <span>Data</span>
+                        </div>
+                        <a href="viewer.html?tool=polyscope" class="tool-link">Launch Tool <span
+                                class="arrow">→</span></a>
+                    </div>
+                </article>
+
+                <!-- Overton Window -->
+                <article class="tool-card" data-vis-type="interactive" data-topic="politics">
+                    <div class="tool-visual">
+                        <img src="overton.png" alt="Overton Window Visualization"
+                            style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </div>
+                    <div class="tool-content">
+                        <h3>Overton Window</h3>
+                        <p>Interactive demonstration of the Overton Window concept and political viability.</p>
+                        <div class="tool-tags">
+                            <span>Interactive</span>
+                            <span>Sociology</span>
+                        </div>
+                        <a href="viewer.html?tool=overton" class="tool-link">Launch Tool <span
+                                class="arrow">→</span></a>
+                    </div>
+                </article>
+
+                <!-- Knowledge Word Clusters -->
+                <article class="tool-card" data-vis-type="network" data-topic="nlp">
+                    <div class="tool-visual">
+                        <img src="clusters.png" alt="Knowledge Word Clusters Visualization" loading="lazy"
+                            style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </div>
+                    <div class="tool-content">
+                        <h3>Knowledge Clusters</h3>
+                        <p>Visualization of word clusters and knowledge graphs for semantic exploration.</p>
+                        <div class="tool-tags">
+                            <span>NLP</span>
+                            <span>Graph</span>
+                        </div>
+                        <a href="viewer.html?tool=clusters" class="tool-link">Launch Tool <span
+                                class="arrow">→</span></a>
+                    </div>
+                </article>
+
+                <!-- The Spirit -->
+                <article class="tool-card" data-vis-type="3d" data-topic="art">
+                    <div class="tool-visual">
+                        <img src="spirit.png" alt="The Spirit Visualization" loading="lazy"
+                            style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </div>
+                    <div class="tool-content">
+                        <h3>The Spirit</h3>
+                        <p>Experimental WebGL fluid distortion and spirit metaphor visualization.</p>
+                        <div class="tool-tags">
+                            <span>WebGL</span>
+                            <span>Experiment</span>
+                        </div>
+                        <a href="viewer.html?tool=spirit" class="tool-link">Launch Tool <span class="arrow">→</span></a>
+                    </div>
+                </article>
+
+                <!-- Gapminder -->
+                <article class="tool-card" data-vis-type="chart" data-topic="systems">
+                    <div class="tool-visual">
+                        <img src="gapminder.png" alt="Gapminder Visualization" loading="lazy"
+                            style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </div>
+                    <div class="tool-content">
+                        <h3>Gapminder</h3>
+                        <p>Bubble charts for statistical data exploration.</p>
+                        <div class="tool-tags">
+                            <span>Statistics</span>
+                            <span>Global</span>
+                        </div>
+                        <a href="viewer.html?tool=gapminder" class="tool-link">Launch Tool <span
+                                class="arrow">→</span></a>
+                    </div>
+                </article>
+                <!-- UK Health Research Ecosystem -->
+                <article class="tool-card" data-vis-type="flow" data-topic="health">
+                    <div class="tool-visual"
+                        style="background-color: #a855f7; display: flex; align-items: center; justify-content: center;">
+                        <img src="uk_health_research.png" alt="UK Health Research Ecosystem"
+                            style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </div>
+                    <div class="tool-content">
+                        <h3>Health Ecosystem</h3>
+                        <p>Interactive flow of UK health research funding from source to impact.</p>
+                        <div class="tool-tags">
+                            <span>Ecosystem</span>
+                            <span>Flows</span>
+                        </div>
+                        <a href="uk_health_research_2025.html" class="tool-link">Launch Tool <span
+                                class="arrow">→</span></a>
+                    </div>
+                </article>
+
+                <!-- NHS Strategic Monitor -->
+                <article class="tool-card" data-vis-type="3d" data-topic="health">
+                    <div class="tool-visual"
+                        style="background-color: #005EB8; display: flex; align-items: center; justify-content: center;">
+                        <img src="nhs_vital_signs.png" alt="NHS Vital Signs"
+                            style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </div>
+                    <div class="tool-content">
+                        <h3>NHS Vital Signs</h3>
+                        <p>Strategic elucidation model tracking systemic degradation and privatisation.</p>
+                        <div class="tool-tags">
+                            <span>Strategic</span>
+                            <span>Monitor</span>
+                        </div>
+                        <a href="nhs_monitor.html" class="tool-link">Launch Tool <span class="arrow">→</span></a>
+                    </div>
+                </article>
+
+                <!-- Economics of Health Data -->
+                <article class="tool-card" data-vis-type="3d" data-topic="health">
+                    <div class="tool-visual"
+                        style="background-color: #FFD700; display: flex; align-items: center; justify-content: center;">
+                        <img src="economics_health_data.png" alt="Economics of Health Data"
+                            style="width: 100%; height: 100%; object-fit: cover; object-position: center;">
+                    </div>
+                    <div class="tool-content">
+                        <h3>Health Data Economics</h3>
+                        <p>Comparative analysis of Service-in-Kind vs. Sovereign Equity models.</p>
+                        <div class="tool-tags">
+                            <span>Economics</span>
+                            <span>Data Asset</span>
+                        </div>
+                        <a href="economics_health_data.html" class="tool-link">Launch Tool <span
+                                class="arrow">→</span></a>
+                    </div>
+                </article>
+
+                <!-- Health IP Ecosystem -->
+                <article class="tool-card" data-vis-type="simulation" data-topic="systems">
+                    <div class="tool-visual"
+                        style="background-color: #2dd4bf; display: flex; align-items: center; justify-content: center;">
+                        <div style="font-size: 3rem; color: rgba(0,0,0,0.2); font-weight: bold;">IP</div>
+                    </div>
+                    <div class="tool-content">
+                        <h3>Health IP System</h3>
+                        <p>Interactive simulation of public/private IP balance and system stability.</p>
+                        <div class="tool-tags">
+                            <span>Simulation</span>
+                            <span>IP Rights</span>
+                        </div>
+                        <a href="health_ip_ecosystem.html" class="tool-link">Launch Tool <span
+                                class="arrow">→</span></a>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="graphics" class="section">
+            <div class="section-header">
+                <h2>Applied Ontology Graphics</h2>
+                <p>Curated visualizations for complex systems.</p>
+            </div>
+            <!-- Placeholder for Graphics Gallery -->
+            <!-- Modified Gallery Grid with Split Tiles -->
+            <div class="gallery-grid">
+                <!-- Card 1 Start -->
+                <div class="split-card-container">
+                    <!-- Top Tile -->
+                    <a href="graphics/concept-mapping.html" class="split-card top-card">
+                        <div class="card-icon">▣</div>
+                        <h3>Concept Mapping</h3>
+                        <p>Interactive Network</p>
+                        <span class="text-link">Explore Types <span class="arrow">→</span></span>
+                    </a>
+                    <!-- Bottom Tile -->
+                    <a href="viewer.html?tool=concept" class="split-card bottom-card">
+                        <img src="concept_thumb.png" alt="Concept Map Example" class="card-bg-img">
+                        <div class="card-overlay">
+                            <span>Example</span>
+                        </div>
+                    </a>
+                </div>
+                <!-- Card 1 End -->
+
+                <!-- Card 2 Start -->
+                <div class="split-card-container">
+                    <!-- Top Tile -->
+                    <a href="graphics/system-architecture.html" class="split-card top-card">
+                        <div class="card-icon">◈</div>
+                        <h3>System Architecture</h3>
+                        <p>3D Layered View</p>
+                        <span class="text-link">Explore Types <span class="arrow">→</span></span>
+                    </a>
+                    <!-- Bottom Tile -->
+                    <a href="viewer.html?tool=structure" class="split-card bottom-card">
+                        <img src="system_thumb.png" alt="System Architecture Example" class="card-bg-img">
+                        <div class="card-overlay">
+                            <span>Example</span>
+                        </div>
+                    </a>
+                </div>
+                <!-- Card 2 End -->
+
+                <!-- Card 3 Start -->
+                <div class="split-card-container">
+                    <!-- Top Tile -->
+                    <a href="graphics/flow-dynamics.html" class="split-card top-card">
+                        <div class="card-icon">◎</div>
+                        <h3>Flow Dynamics</h3>
+                        <p>Resource Sankey</p>
+                        <span class="text-link">Explore Types <span class="arrow">→</span></span>
+                    </a>
+                    <!-- Bottom Tile -->
+                    <a href="viewer.html?tool=flow" class="split-card bottom-card">
+                        <img src="flow_thumb.png" alt="Flow Dynamics Example" class="card-bg-img">
+                        <div class="card-overlay">
+                            <span>Example</span>
+                        </div>
+                    </a>
+                </div>
+                <!-- Card 3 End -->
+            </div>
+        </section>
+
+        <section id="off-the-shelf" class="section">
+            <div class="section-header">
+                <h2>Off-the-Shelf <span class="gradient-text">Tools</span></h2>
+                <p>Explore the best open-source tools for ontology and graph visualization.</p>
+            </div>
+            <div class="tools-grid">
+                <!-- Cytoscape -->
+                <article class="tool-card" style="border-style: solid; border-color: rgba(255,255,255,0.05);">
+                    <div class="tool-content">
+                        <h3>Cytoscape.js</h3>
+                        <p>Graph theory / network library for analysis and visualisation.</p>
+                        <a href="https://js.cytoscape.org/" target="_blank" class="tool-link">Visit Project <span
+                                class="arrow">↗</span></a>
+                    </div>
+                </article>
+
+                <!-- Gephi -->
+                <article class="tool-card" style="border-style: solid; border-color: rgba(255,255,255,0.05);">
+                    <div class="tool-content">
+                        <h3>Gephi</h3>
+                        <p>The leading visualization and exploration software for all kinds of graphs and networks.</p>
+                        <a href="https://gephi.org/" target="_blank" class="tool-link">Visit Project <span
+                                class="arrow">↗</span></a>
+                    </div>
+                </article>
+
+                <!-- Graphviz -->
+                <article class="tool-card" style="border-style: solid; border-color: rgba(255,255,255,0.05);">
+                    <div class="tool-content">
+                        <h3>Graphviz</h3>
+                        <p>Open source graph visualization software for representing structural information.</p>
+                        <a href="https://graphviz.org/" target="_blank" class="tool-link">Visit Project <span
+                                class="arrow">↗</span></a>
+                    </div>
+                </article>
+
+                <!-- WebVOWL -->
+                <article class="tool-card" style="border-style: solid; border-color: rgba(255,255,255,0.05);">
+                    <div class="tool-content">
+                        <h3>WebVOWL</h3>
+                        <p>Web-based Visualization of Ontologies using the Visual Notation for OWL Ontologies.</p>
+                        <a href="http://vowl.visualdataweb.org/webvowl.html" target="_blank" class="tool-link">Visit
+                            Project <span class="arrow">↗</span></a>
+                    </div>
+                </article>
+            </div>
+        </section>
+        </section>
+
+        <section id="consultancy" class="section">
+            <div class="section-header">
+                <h2>Agentic Support & <span class="gradient-text">Consultancy</span></h2>
+                <p>Expert guidance for your ontology visualization needs.</p>
+            </div>
+            <div class="consultancy-content" style="text-align: center; max-width: 800px; margin: 0 auto;">
+                <p style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 2rem;">
+                    Need help integrating these tools or building custom knowledge graphs? Our team of experts is ready
+                    to assist you with architectural planning, implementation, and deployment.
+                </p>
+                <a href="#contact" class="primary-btn">Chat with a Consultant</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">ontology.graphics</div>
+            <p>&copy; 2026. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

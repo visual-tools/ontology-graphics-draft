@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overton Window Ontology Graphic</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- React and ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel for JSX Transpilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body,
+    html,
+    #root {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
+      background-color: #111827;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #4b5563;
+      border-radius: 10px;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // ==========================================
+    // DATASETS (Full Ontology Library)
+    // ==========================================
+
+    const DATASETS = {
+      health_ip: {
+        title: "Commercial Access & IP in Health Research",
+        groups: [
+          { id: 'patient', name: 'Patient Advocates', color: '#00E676' },
+          { id: 'nhs_gov', name: 'NHS & Gov Leadership', color: '#FF1744' },
+          { id: 'industry', name: 'Pharma & Tech Industry', color: '#FF9100' },
+          { id: 'academic', name: 'Academic Researchers', color: '#00E5FF' },
+          { id: 'legal', name: 'Legal & Ethicists', color: '#2979FF' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'General Consensus' },
+          'protectionism': { min: -9, max: -1, label: 'Protectionism Block' },
+          'collaboration': { min: -2, max: 4, label: 'Collaboration Block' },
+          'privatization': { min: 3, max: 9, label: 'Privatization Block' }
+        },
+        yAxis: [
+          { id: 'evidence', label: 'Innovation Impact', description: 'Acceleration of treatments (0-10)' },
+          { id: 'equitability', label: 'Public Trust', description: 'Social license & fairness (0-10)' },
+          { id: 'salience', label: 'Feasibility', description: 'Technical/Political reality (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'Full Commercial Ban', description: 'No for-profit access to NHS data under any circumstances.', position: -9, parties: ['patient'], status: 'Unthinkable', source: 'https://medconfidential.org', stats: [{ text: "1.5m opt-outs in one month (2021) showed the scale of public distrust.", sourceUrl: "https://digital.nhs.uk/services/national-data-opt-out/statistics" }], evidence: 1, equitability: 9, salience: 6 },
+          { id: 2, title: 'Data Sovereign Wealth Fund', description: 'National fund holding IP stakes in all products derived from NHS data.', position: -7, parties: ['patient', 'nhs_gov'], status: 'Radical', source: 'https://www.ippr.org', stats: [{ text: "NHS data estimated to be worth £9.6bn/year to commercial sector.", sourceUrl: "https://www.ey.com/en_uk/news/2019/07/nhs-data-value" }], evidence: 5, equitability: 10, salience: 7 },
+          { id: 3, title: 'Individual Data Dividends', description: 'Micro-payments to patients every time their specific record is used.', position: -8, parties: ['patient'], status: 'Unthinkable', source: 'https://www.bristol.ac.uk', stats: [{ text: "62% of public believe they should financially benefit directly.", sourceUrl: "https://www.bristol.ac.uk/policybristol/policy-briefings/nhs-data-value/" }], evidence: 2, equitability: 8, salience: 4 },
+          { id: 4, title: 'Dynamic Consent Portals', description: 'Real-time app allowing patients to toggle access for specific companies.', position: -5, parties: ['patient'], status: 'Radical', source: 'https://www.usemydata.org', stats: [{ text: "Granular control increases trust by 24%.", sourceUrl: "https://understandingpatientdata.org.uk" }], evidence: 4, equitability: 10, salience: 5 },
+          { id: 5, title: 'Citizen Data Juries', description: 'Lay panels with veto power over commercial access requests.', position: -3, parties: ['patient', 'legal'], status: 'Acceptable', source: 'https://www.adruk.org', stats: [{ text: "OneLondon deliberations showed strong support for strict conditions.", sourceUrl: "https://www.onelondon.online" }], evidence: 6, equitability: 9, salience: 6 },
+          { id: 6, title: 'No IP Transfer', description: 'Companies can use data but NHS retains 100% of resulting IP.', position: -4, parties: ['patient', 'academic'], status: 'Acceptable', source: 'https://weownit.org.uk', stats: [{ text: "Public ownership of IP is seen as key to 'NHS values'.", sourceUrl: "https://weownit.org.uk/nhs-data-grab" }], evidence: 3, equitability: 8, salience: 5 },
+          { id: 7, title: 'Transparency Registers', description: 'Public log of every commercial access request and outcome.', position: 0, parties: ['patient', 'nhs_gov', 'legal'], status: 'Policy', source: 'https://www.data.gov.uk', stats: [{ text: "Only 34% of public know how NHS uses data.", sourceUrl: "https://theodi.org" }], evidence: 7, equitability: 8, salience: 4 },
+          { id: 8, title: 'Strict Purpose Limitation', description: 'Data only for health outcomes, never for insurance/marketing.', position: -1, parties: ['patient', 'legal', 'industry'], status: 'Policy', source: 'https://www.ndg.org.uk', stats: [{ text: "91% support health research; <50% support commercial insurance use.", sourceUrl: "https://www.rcgp.org.uk" }], evidence: 8, equitability: 9, salience: 3 },
+          { id: 9, title: 'Opt-Out Universality', description: 'National Opt-out applies to ALL anonymized commercial feeds.', position: -2, parties: ['patient', 'legal'], status: 'Sensible', source: 'https://digital.nhs.uk', stats: [{ text: "Current exemptions for 'anonymised' data confuse the public.", sourceUrl: "https://medconfidential.org" }], evidence: 5, equitability: 9, salience: 8 },
+          { id: 10, title: 'Right to Be Forgotten', description: 'Absolute right to delete data from trained AI models.', position: -6, parties: ['patient', 'legal'], status: 'Radical', source: 'https://ico.org.uk', stats: [{ text: "'Machine unlearning' is technically difficult but ethically demanded.", sourceUrl: "https://www.turing.ac.uk" }], evidence: 2, equitability: 9, salience: 6 },
+          { id: 11, title: 'Value Sharing Framework', description: 'Charging fair market value to fund NHS digitization.', position: 1, parties: ['nhs_gov'], status: 'Policy', source: 'https://transform.england.nhs.uk', stats: [{ text: "NHS creates £10bn+ value; aiming to capture a fraction for reinvestment.", sourceUrl: "https://www.gov.uk" }], evidence: 8, equitability: 7, salience: 7 },
+          { id: 12, title: 'Federated Data Platform', description: 'Central OS connecting trusts to industry partners.', position: 3, parties: ['nhs_gov'], status: 'Contested', source: 'https://www.england.nhs.uk', stats: [{ text: "£330m Palantir contract sparked major legal challenges.", sourceUrl: "https://www.foxglove.org.uk" }], evidence: 9, equitability: 4, salience: 10 },
+          { id: 13, title: 'Secure Data Environments (SDE)', description: '"Access not Copy" - data stays in NHS servers.', position: 0, parties: ['nhs_gov', 'academic', 'patient'], status: 'Policy', source: 'https://www.hdruk.ac.uk', stats: [{ text: "Goldacre Review: SDEs are the only safe way to handle scale.", sourceUrl: "https://www.gov.uk" }], evidence: 10, equitability: 8, salience: 5 },
+          { id: 14, title: 'Commercial Clinical Trials', description: 'Streamlining recruitment for pharma studies.', position: 2, parties: ['nhs_gov', 'industry'], status: 'Policy', source: 'https://www.nihr.ac.uk', stats: [{ text: "O'Shaughnessy Review: aim to quadruple commercial trials by 2027.", sourceUrl: "https://www.gov.uk" }], evidence: 9, equitability: 6, salience: 6 },
+          { id: 15, title: 'Golden Share in IP', description: 'Govt retains a "Golden Share" to veto price hikes on drugs.', position: -3, parties: ['nhs_gov', 'patient'], status: 'Sensible', source: 'https://ucl.ac.uk/ippp', stats: [{ text: "Recommended by Mariana Mazzucato for mission-oriented innovation.", sourceUrl: "https://marianamazzucato.com" }], evidence: 6, equitability: 9, salience: 5 },
+          { id: 16, title: 'Levelling Up Data', description: 'Prioritizing data collection in under-represented regions.', position: -1, parties: ['nhs_gov', 'academic'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Northern hospitals often have poorer data infrastructure.", sourceUrl: "https://thenorthernhealthsciencealliance.co.uk" }], evidence: 8, equitability: 8, salience: 4 },
+          { id: 17, title: 'Preferential Access for SMEs', description: 'Discounted access for UK startups vs global pharma.', position: 1, parties: ['nhs_gov', 'industry'], status: 'Sensible', source: 'https://www.abhi.org.uk', stats: [{ text: "UK Life Sciences vision prioritizes domestic growth.", sourceUrl: "https://www.gov.uk" }], evidence: 7, equitability: 7, salience: 5 },
+          { id: 18, title: 'Cost-Recovery Access', description: 'Charging only for compute/admin, not data value.', position: -2, parties: ['nhs_gov', 'academic'], status: 'Sensible', source: 'https://www.hdruk.ac.uk', stats: [{ text: "Standard academic model, but argued as subsidy for pharma.", sourceUrl: "https://www.kingsfund.org.uk" }], evidence: 8, equitability: 6, salience: 4 },
+          { id: 19, title: 'National Data Lake', description: 'Merging all GP data into one central pot.', position: 4, parties: ['nhs_gov'], status: 'Contested', source: 'https://digital.nhs.uk', stats: [{ text: "GPDPR failed due to centralization fears.", sourceUrl: "https://www.bma.org.uk" }], evidence: 10, equitability: 3, salience: 9 },
+          { id: 20, title: 'Emergency Powers Access', description: 'Bypassing consent for pandemic-level threats.', position: 2, parties: ['nhs_gov'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "COPI notices during Covid allowed unprecedented data flow.", sourceUrl: "https://digital.nhs.uk" }], evidence: 10, equitability: 5, salience: 6 },
+          { id: 21, title: 'Exclusive Access Deals', description: 'Buying exclusive rights to a dataset for X years.', position: 7, parties: ['industry'], status: 'Radical', source: 'https://www.ft.com', stats: [{ text: "Banned by current code of conduct but sought by investors.", sourceUrl: "https://www.gov.uk" }], evidence: 6, equitability: 2, salience: 8 },
+          { id: 22, title: 'IP Ownership Default', description: 'Funder owns all IP derived from the data.', position: 5, parties: ['industry'], status: 'Contested', source: 'https://www.abpi.org.uk', stats: [{ text: "Industry argues they take the risk, so should reap rewards.", sourceUrl: "https://www.abpi.org.uk" }], evidence: 9, equitability: 3, salience: 7 },
+          { id: 23, title: 'Raw Data Downloads', description: 'Downloading bulk data to private servers for training.', position: 6, parties: ['industry'], status: 'Radical', source: 'https://openai.com', stats: [{ text: "Necessary for some large model training, but high privacy risk.", sourceUrl: "https://www.turing.ac.uk" }], evidence: 8, equitability: 1, salience: 9 },
+          { id: 24, title: 'Fast-Track Ethics', description: 'Bypassing standard REC review for "low risk" AI.', position: 4, parties: ['industry'], status: 'Contested', source: 'https://www.hra.nhs.uk', stats: [{ text: "Industry claims UK ethics approval takes 6-12 months longer than US.", sourceUrl: "https://www.abhi.org.uk" }], evidence: 7, equitability: 4, salience: 6 },
+          { id: 25, title: 'Safe Safe Havens', description: 'Industry-hosted secure environments (not NHS).', position: 3, parties: ['industry'], status: 'Acceptable', source: 'https://www.microsoft.com', stats: [{ text: "Azure/AWS offer superior tooling to NHS infrastructure.", sourceUrl: "https://cloud.google.com" }], evidence: 9, equitability: 5, salience: 5 },
+          { id: 26, title: 'Synthetic Data Substitution', description: 'Using synthetic NHS-like data to bypass privacy.', position: 1, parties: ['industry', 'academic', 'nhs_gov'], status: 'Sensible', source: 'https://www.mhra.gov.uk', stats: [{ text: "Zero privacy risk, enables rapid prototyping.", sourceUrl: "https://www.nature.com" }], evidence: 6, equitability: 9, salience: 4 },
+          { id: 27, title: 'Real World Evidence (RWE)', description: 'Using live NHS data for post-market drug surveillance.', position: 0, parties: ['industry', 'nhs_gov', 'academic'], status: 'Policy', source: 'https://www.nice.org.uk', stats: [{ text: "Crucial for value-based pricing of new drugs.", sourceUrl: "https://www.nice.org.uk" }], evidence: 9, equitability: 7, salience: 3 },
+          { id: 28, title: 'Automated Prescribing', description: 'AI suggests prescriptions based on data patterns.', position: 5, parties: ['industry'], status: 'Radical', source: 'https://www.babylonhealth.com', stats: [{ text: "High efficiency but high risk of bias/error.", sourceUrl: "https://www.bmj.com" }], evidence: 7, equitability: 4, salience: 8 },
+          { id: 29, title: 'Direct-to-Patient Ads', description: 'Targeting patients based on health record profiling.', position: 9, parties: ['industry'], status: 'Unthinkable', source: 'https://privacyinternational.org', stats: [{ text: "Illegal in UK/EU, legal in USA.", sourceUrl: "https://www.bmj.com" }], evidence: 3, equitability: 0, salience: 9 },
+          { id: 30, title: 'Pre-Competitive Consortia', description: 'Pharma pooling data for non-proprietary research.', position: -1, parties: ['industry', 'academic'], status: 'Sensible', source: 'https://www.ukbiobank.ac.uk', stats: [{ text: "UK Biobank model is the gold standard for this.", sourceUrl: "https://www.ukbiobank.ac.uk" }], evidence: 10, equitability: 8, salience: 2 },
+          { id: 31, title: 'Open Science Default', description: 'Commercial users must publish all code/results.', position: -4, parties: ['academic', 'patient'], status: 'Acceptable', source: 'https://wellcome.org', stats: [{ text: "Trade secrets stifle reproducibility.", sourceUrl: "https://www.nature.com" }], evidence: 9, equitability: 9, salience: 4 },
+          { id: 32, title: 'Reproducible Pipelines (RAP)', description: 'Mandating code-based analysis over point-and-click.', position: -1, parties: ['academic', 'nhs_gov'], status: 'Policy', source: 'https://analysisfunction.civilservice.gov.uk', stats: [{ text: "Goldacre Review heavily promoted RAP for auditability.", sourceUrl: "https://www.gov.uk" }], evidence: 10, equitability: 8, salience: 3 },
+          { id: 33, title: 'Non-Exclusive Licensing', description: 'NHS retains ability to license data to competitors.', position: -2, parties: ['academic', 'nhs_gov', 'legal'], status: 'Policy', source: 'https://www.turing.ac.uk', stats: [{ text: "Prevents monopolies on disease insights.", sourceUrl: "https://www.gov.uk" }], evidence: 8, equitability: 9, salience: 3 },
+          { id: 34, title: 'Algorithmic Auditing', description: 'Third-party academics audit commercial AI for bias.', position: -3, parties: ['academic', 'legal', 'patient'], status: 'Sensible', source: 'https://www.adalovelaceinstitute.org', stats: [{ text: "Necessary to prevent 'black box' discrimination.", sourceUrl: "https://www.nature.com" }], evidence: 8, equitability: 10, salience: 5 },
+          { id: 35, title: 'University Spin-Outs', description: 'Academics forming companies to commercialize findings.', position: 1, parties: ['academic', 'industry'], status: 'Policy', source: 'https://users.ox.ac.uk', stats: [{ text: "Oxford/Cambridge create huge value but equity split is debated.", sourceUrl: "https://www.gov.uk" }], evidence: 9, equitability: 6, salience: 4 },
+          { id: 36, title: 'Data Philanthropy', description: 'Companies donating private data to academic researchers.', position: 0, parties: ['academic'], status: 'Sensible', source: 'https://www.data4sdgs.org', stats: [{ text: "Rarely happens without PR incentives.", sourceUrl: "https://theodi.org" }], evidence: 7, equitability: 8, salience: 2 },
+          { id: 37, title: 'Federated Learning', description: 'Training models across hospitals without moving data.', position: 0, parties: ['academic', 'industry', 'nhs_gov'], status: 'Policy', source: 'https://www.nvidia.com', stats: [{ text: "Technically complex but privacy-preserving.", sourceUrl: "https://www.nature.com" }], evidence: 8, equitability: 8, salience: 3 },
+          { id: 38, title: 'Negative Result Publication', description: 'Mandating publication of failed commercial trials.', position: -5, parties: ['academic', 'legal'], status: 'Radical', source: 'https://www.alltrials.net', stats: [{ text: "Preventing 'file drawer' problem saves billions.", sourceUrl: "https://www.bmj.com" }], evidence: 9, equitability: 9, salience: 6 },
+          { id: 39, title: 'Academic Veto', description: 'Universities vetting commercial partners for ethics.', position: -6, parties: ['academic'], status: 'Radical', source: 'https://www.ucu.org.uk', stats: [{ text: "Concerns over 'dual use' technologies.", sourceUrl: "https://www.sgr.org.uk" }], evidence: 4, equitability: 8, salience: 5 },
+          { id: 40, title: 'Global Health License', description: 'IP free for developing nations.', position: -7, parties: ['academic', 'legal'], status: 'Radical', source: 'https://uaem.org', stats: [{ text: "Oxford-AstraZeneca vaccine model.", sourceUrl: "https://www.ox.ac.uk" }], evidence: 8, equitability: 10, salience: 6 },
+          { id: 41, title: 'Binding Governance', description: 'Legally enforceable contracts for data misuse.', position: -1, parties: ['legal', 'nhs_gov'], status: 'Policy', source: 'https://ico.org.uk', stats: [{ text: "GDPR fines are the backstop for trust.", sourceUrl: "https://ico.org.uk" }], evidence: 6, equitability: 9, salience: 4 },
+          { id: 42, title: 'Benefit Sharing Clauses', description: 'Contractual obligation to provide drugs at cost to NHS.', position: -3, parties: ['legal', 'nhs_gov'], status: 'Acceptable', source: 'https://www.ucl.ac.uk', stats: [{ text: "Standard in some genomic partnerships.", sourceUrl: "https://www.genomicsengland.co.uk" }], evidence: 6, equitability: 10, salience: 7 },
+          { id: 43, title: 'Trusted Research Env. Law', description: 'Making data extraction a criminal offense.', position: -2, parties: ['legal', 'nhs_gov'], status: 'Sensible', source: 'https://medconfidential.org', stats: [{ text: "Strengthens the 'safe haven' promise.", sourceUrl: "https://www.gov.uk" }], evidence: 7, equitability: 9, salience: 5 },
+          { id: 44, title: 'IP Waiver (TRIPS)', description: 'Waiving patents during health emergencies.', position: -8, parties: ['legal', 'academic'], status: 'Unthinkable', source: 'https://www.wto.org', stats: [{ text: "Heavily opposed by pharma during Covid.", sourceUrl: "https://www.bbc.co.uk" }], evidence: 5, equitability: 10, salience: 8 },
+          { id: 45, title: 'Algorithmic Liability', description: 'Developers strictly liable for AI errors.', position: -4, parties: ['legal'], status: 'Acceptable', source: 'https://www.lawgazette.co.uk', stats: [{ text: "Who is sued? The doctor or the coder?", sourceUrl: "https://www.bma.org.uk" }], evidence: 5, equitability: 8, salience: 7 },
+          { id: 46, title: 'Ethics Washing Ban', description: 'Penalties for performative ethics boards.', position: -5, parties: ['legal'], status: 'Radical', source: 'https://www.turing.ac.uk', stats: [{ text: "Common in 'Big Tech' health partnerships.", sourceUrl: "https://www.wired.com" }], evidence: 4, equitability: 9, salience: 6 },
+          { id: 47, title: 'Data Minimization', description: 'Legal limit on data fields provided.', position: -2, parties: ['legal', 'patient'], status: 'Policy', source: 'https://ico.org.uk', stats: [{ text: "Core GDPR principle.", sourceUrl: "https://gdpr-info.eu" }], evidence: 5, equitability: 8, salience: 3 },
+          { id: 48, title: 'Patient Ownership Rights', description: 'Creating property rights in personal data.', position: -7, parties: ['legal'], status: 'Radical', source: 'https://www.weforum.org', stats: [{ text: "Would upend current IP law fundamentally.", sourceUrl: "https://www.law.ox.ac.uk" }], evidence: 2, equitability: 9, salience: 7 },
+          { id: 49, title: 'No-Fault Compensation', description: 'Fund for harms caused by research use.', position: -1, parties: ['legal', 'patient'], status: 'Sensible', source: 'https://www.abpi.org.uk', stats: [{ text: "Encourages participation by reducing risk.", sourceUrl: "https://www.hra.nhs.uk" }], evidence: 7, equitability: 9, salience: 4 },
+          { id: 50, title: 'Retrospective Consent', description: 'Legal requirement to re-contact for new uses.', position: -6, parties: ['legal'], status: 'Radical', source: 'https://www.nuffieldbioethics.org', stats: [{ text: "Huge admin burden, but ethically robust.", sourceUrl: "https://www.nuffieldbioethics.org" }], evidence: 3, equitability: 10, salience: 6 }
+        ]
+      },
+      mental_health: {
+        title: "NHS Mental Health Approaches in the UK",
+        groups: [
+          { id: 'psychiatry', name: 'Psychiatry (Medical Model)', color: '#63B3ED' },
+          { id: 'psychology', name: 'Psychology (Social Model)', color: '#F6AD55' },
+          { id: 'users', name: 'Service Users / Survivors', color: '#00E676' },
+          { id: 'management', name: 'NHS Management / Gov', color: '#FF1744' },
+          { id: 'third_sector', name: 'Third Sector / Charities', color: '#A0AEC0' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'General Consensus' },
+          'rights': { min: -9, max: -2, label: 'Rights-Based / Social' },
+          'medical': { min: -1, max: 4, label: 'Biomedical / Stepped Care' },
+          'efficiency': { min: 3, max: 9, label: 'Efficiency / Coercion' }
+        },
+        yAxis: [
+          { id: 'evidence', label: 'Clinical Efficacy', description: 'Reduction in symptoms/distress (0-10)' },
+          { id: 'equitability', label: 'Human Rights', description: 'Autonomy & UNCRPD alignment (0-10)' },
+          { id: 'salience', label: 'System Capacity', description: 'Feasibility within current funding (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'Abolition of Forced Treatment', description: 'Ending all involuntary detention (Sectioning) in line with UNCRPD.', position: -9, parties: ['users'], status: 'Unthinkable', source: 'https://www.nsun.org.uk', stats: [{ text: "UN Committee on Rights of Persons with Disabilities calls for absolute ban on forced treatment.", sourceUrl: "https://www.ohchr.org" }], evidence: 3, equitability: 10, salience: 4 },
+          { id: 2, title: 'Soteria Houses', description: 'Non-medical, drug-free crisis houses supporting people through psychosis.', position: -7, parties: ['users', 'third_sector'], status: 'Radical', source: 'https://www.soterianetwork.org.uk', stats: [{ text: "Soteria model shows equal outcomes to hospital with less medication usage.", sourceUrl: "https://pubmed.ncbi.nlm.nih.gov" }], evidence: 6, equitability: 9, salience: 5 },
+          { id: 3, title: 'Power Threat Meaning Framework', description: 'Replacing psychiatric diagnosis with trauma-informed narratives.', position: -6, parties: ['psychology', 'users'], status: 'Radical', source: 'https://www.bps.org.uk', stats: [{ text: "Offers alternative to medicalisation, focusing on 'what happened to you' not 'what is wrong with you'.", sourceUrl: "https://www.bps.org.uk" }], evidence: 5, equitability: 9, salience: 6 },
+          { id: 4, title: 'Open Dialogue', description: 'Network-based care involving family/friends from the first point of crisis.', position: -5, parties: ['psychology', 'third_sector'], status: 'Acceptable', source: 'https://www.nelft.nhs.uk', stats: [{ text: "In Finland, Open Dialogue reduced schizophrenia medication use by ~60%.", sourceUrl: "https://pubmed.ncbi.nlm.nih.gov" }], evidence: 8, equitability: 9, salience: 5 },
+          { id: 5, title: 'Social Prescribing Default', description: 'Prescribing housing/debt advice before antidepressants for mild distress.', position: -3, parties: ['psychology', 'management'], status: 'Sensible', source: 'https://www.england.nhs.uk', stats: [{ text: "20% of GP appointments are for non-medical social problems.", sourceUrl: "https://www.kingsfund.org.uk" }], evidence: 7, equitability: 8, salience: 9 },
+          { id: 6, title: 'IAPT / Talking Therapies', description: 'Standardized CBT for anxiety/depression with strict targets.', position: 0, parties: ['management', 'psychology'], status: 'Policy', source: 'https://www.england.nhs.uk/mental-health/adults/iapt/', stats: [{ text: "Treats 1.2m people/year, but criticism over 'conveyor belt' care.", sourceUrl: "https://digital.nhs.uk" }], evidence: 8, equitability: 6, salience: 10 },
+          { id: 7, title: 'Biomedical Model', description: 'Diagnosis + Medication as the primary treatment pathway.', position: 0, parties: ['psychiatry', 'management'], status: 'Policy', source: 'https://www.rcpsych.ac.uk', stats: [{ text: "Antidepressant prescribing has doubled in the last decade.", sourceUrl: "https://www.nhsbsa.nhs.uk" }], evidence: 7, equitability: 5, salience: 9 },
+          { id: 8, title: 'Peer Support Workers', description: 'Employing people with lived experience in clinical teams.', position: -1, parties: ['users', 'management'], status: 'Policy', source: 'https://www.england.nhs.uk', stats: [{ text: "NHS Long Term Plan promised 4,700 new peer support workers.", sourceUrl: "https://www.england.nhs.uk" }], evidence: 7, equitability: 8, salience: 7 },
+          { id: 9, title: 'Crisis Resolution Teams', description: '24/7 teams aiming to treat patients at home to avoid admission.', position: 1, parties: ['management', 'psychiatry'], status: 'Policy', source: 'https://www.cqc.org.uk', stats: [{ text: "Intended to reduce admissions, but often understaffed and overstretched.", sourceUrl: "https://www.cqc.org.uk" }], evidence: 6, equitability: 6, salience: 8 },
+          { id: 10, title: 'Right Care Right Person', description: 'Police withdrawing from mental health calls to focus on crime.', position: 2, parties: ['management'], status: 'Policy', source: 'https://www.college.police.uk', stats: [{ text: "Estimates save 1 million police hours, but risks gap in crisis response.", sourceUrl: "https://www.bbc.co.uk" }], evidence: 5, equitability: 4, salience: 10 },
+          { id: 11, title: 'Community Treatment Orders', description: 'Compelling patients to accept medication in the community to avoid recall.', position: 3, parties: ['psychiatry'], status: 'Policy', source: 'https://www.mind.org.uk', stats: [{ text: "Black people are 11x more likely to be placed on a CTO.", sourceUrl: "https://www.equalityhumanrights.com" }], evidence: 4, equitability: 2, salience: 8 },
+          { id: 12, title: 'Outsourced ADHD Assessments', description: 'Using private online providers to clear massive NHS waiting lists.', position: 4, parties: ['management', 'third_sector'], status: 'Acceptable', source: 'https://www.bbc.co.uk', stats: [{ text: "Waiting lists for ADHD can exceed 5 years in some trusts.", sourceUrl: "https://www.bbc.co.uk" }], evidence: 6, equitability: 5, salience: 9 },
+          { id: 13, title: 'Serenity Integrated Mentoring (SIM)', description: 'Police enforced behavioral contracts for "high intensity" users.', position: 5, parties: ['management'], status: 'Contested', source: 'https://www.stop-sim.co.uk', stats: [{ text: "Widespread criticism led to NHS England asking trusts to review/halt SIM.", sourceUrl: "https://www.england.nhs.uk" }], evidence: 2, equitability: 1, salience: 9 },
+          { id: 14, title: 'AI Chatbot Therapy', description: 'Replacing human therapists with LLMs for mild/moderate cases.', position: 6, parties: ['management'], status: 'Radical', source: 'https://www.nice.org.uk', stats: [{ text: "NICE recommended 8 digital therapies for anxiety to cut waiting times.", sourceUrl: "https://www.nice.org.uk" }], evidence: 5, equitability: 4, salience: 8 },
+          { id: 15, title: 'Inpatient Bed Reductions', description: 'Closing wards to fund community care (often without the funding transfer).', position: 2, parties: ['management'], status: 'Policy', source: 'https://www.kingsfund.org.uk', stats: [{ text: "Mental health bed numbers fell by 73% between 1987 and 2017.", sourceUrl: "https://www.kingsfund.org.uk" }], evidence: 4, equitability: 3, salience: 7 },
+          { id: 16, title: 'Electroconvulsive Therapy (ECT)', description: 'Use of electrical stimulation for severe depression.', position: 3, parties: ['psychiatry'], status: 'Contested', source: 'https://www.rcpsych.ac.uk', stats: [{ text: "Highly effective for catatonia/severe depression, but stigmatized.", sourceUrl: "https://www.rcpsych.ac.uk" }], evidence: 9, equitability: 4, salience: 6 },
+          { id: 17, title: 'Preventative Detention', description: 'Detaining based on risk of future harm rather than treatability.', position: 7, parties: ['psychiatry'], status: 'Radical', source: 'https://www.lawgazette.co.uk', stats: [{ text: "Proposed reforms to MHA aim to reduce this, linking detention to therapeutic benefit.", sourceUrl: "https://www.gov.uk" }], evidence: 3, equitability: 2, salience: 5 },
+          { id: 18, title: 'Indefinite Detention (IPP Legacy)', description: 'Prison sentences for public protection with no release date.', position: 8, parties: ['management'], status: 'Unthinkable', source: 'https://ungipp.org', stats: [{ text: "Psychological harm to IPP prisoners described as 'psychological torture'.", sourceUrl: "https://www.un.org" }], evidence: 1, equitability: 0, salience: 4 },
+          { id: 19, title: 'Mandatory Re-Traumatization', description: 'Forcing patients to recount trauma repeatedly to access benefits/care.', position: 5, parties: ['management'], status: 'Contested', source: 'https://www.mind.org.uk', stats: [{ text: "PIP assessments often cited as major trigger for mental health crisis.", sourceUrl: "https://www.mind.org.uk" }], evidence: 2, equitability: 2, salience: 8 },
+          { id: 20, title: 'Universal Basic Income', description: 'Guaranteed income to remove poverty as a cause of mental illness.', position: -8, parties: ['users', 'third_sector'], status: 'Unthinkable', source: 'https://www.centreformentalhealth.org.uk', stats: [{ text: "Poverty is the single biggest driver of poor mental health.", sourceUrl: "https://www.mentalhealth.org.uk" }], evidence: 7, equitability: 10, salience: 3 }
+        ]
+      },
+      ai_ip_global: {
+        title: "Global AI & Intellectual Property Regimes",
+        groups: [
+          { id: 'eu', name: 'European Union (AI Act)', color: '#2979FF' },
+          { id: 'usa', name: 'USA (Fair Use / Litigation)', color: '#FF1744' },
+          { id: 'uk', name: 'UK (Pro-Innovation / TDM)', color: '#F6AD55' },
+          { id: 'japan', name: 'Japan (AI Friendly)', color: '#00E676' },
+          { id: 'china', name: 'China (State Control)', color: '#FF9100' },
+          { id: 'creatives', name: 'Global Creative Industries', color: '#A0AEC0' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'Global Consensus' },
+          'protectionist': { min: -9, max: -2, label: 'Creator Protection' },
+          'balanced': { min: -1, max: 2, label: 'Balanced Approach' },
+          'permissive': { min: 3, max: 9, label: 'AI Permissive' }
+        },
+        yAxis: [
+          { id: 'evidence', label: 'Copyright Flexibility', description: 'Legal room for training on protected works (0-10)' },
+          { id: 'equitability', label: 'Creator Rights', description: 'Protection of human authorship (0-10)' },
+          { id: 'salience', label: 'Innovation Speed', description: 'Velocity of AI development (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'Transparency Mandate', description: 'AI companies must publish detailed summaries of training data.', position: -4, parties: ['eu'], status: 'Policy', source: 'https://artificialintelligenceact.eu', stats: [{ text: "EU AI Act Art 53: Providers must disclose content used for training.", sourceUrl: "https://artificialintelligenceact.eu" }], evidence: 4, equitability: 9, salience: 9 },
+          { id: 2, title: 'Opt-Out for TDM', description: 'Rightsholders can opt-out of text and data mining (TDM) via machine-readable means.', position: -2, parties: ['eu'], status: 'Policy', source: 'https://digital-strategy.ec.europa.eu', stats: [{ text: "DSM Directive Art 4 allows TDM unless expressly reserved.", sourceUrl: "https://eur-lex.europa.eu" }], evidence: 5, equitability: 8, salience: 6 },
+          { id: 3, title: 'No Copyright for AI Works', description: 'AI-generated content cannot be copyrighted without human authorship.', position: -1, parties: ['eu', 'usa'], status: 'Policy', source: 'https://curia.europa.eu', stats: [{ text: "Consensus in western law: 'originality' requires a human author.", sourceUrl: "https://www.wipo.int" }], evidence: 2, equitability: 7, salience: 5 },
+          { id: 4, title: 'Fair Use Defense', description: 'Training on copyrighted data is "transformative" and therefore legal.', position: 2, parties: ['usa'], status: 'Contested', source: 'https://www.copyright.gov', stats: [{ text: "Google v. Oracle precedent suggests API/code use can be fair use.", sourceUrl: "https://www.supremecourt.gov" }], evidence: 8, equitability: 4, salience: 10 },
+          { id: 5, title: 'Substantial Similarity Test', description: 'Infringement only occurs if output looks like the training data.', position: 3, parties: ['usa'], status: 'Contested', source: 'https://www.eff.org', stats: [{ text: "NYT v. OpenAI hinges on whether GPT-4 'memorized' articles.", sourceUrl: "https://www.nytimes.com" }], evidence: 7, equitability: 5, salience: 9 },
+          { id: 6, title: 'Copyright Registration Refusal', description: 'USCO refuses to register works created by Midjourney/DALL-E.', position: -3, parties: ['usa'], status: 'Policy', source: 'https://www.copyright.gov', stats: [{ text: "USCO: 'Zarya of the Dawn' images not copyrightable due to AI generation.", sourceUrl: "https://www.copyright.gov" }], evidence: 3, equitability: 8, salience: 6 },
+          { id: 7, title: 'Broad TDM Exception (Proposed)', description: 'Allowing TDM for any purpose, including commercial, to boost AI sector.', position: 5, parties: ['uk'], status: 'Unthinkable', source: 'https://www.gov.uk/government/consultations/artificial-intelligence-and-intellectual-property-call-for-views', stats: [{ text: "Proposed by IPO in 2022, scrapped in 2023 after creative sector backlash.", sourceUrl: "https://www.ft.com" }], evidence: 9, equitability: 2, salience: 8 },
+          { id: 8, title: 'Code of Practice', description: 'Voluntary agreement between AI firms and creatives on data access.', position: 0, parties: ['uk'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Talks collapsed in 2024; govt threatens legislation if no deal reached.", sourceUrl: "https://www.bbc.co.uk" }], evidence: 5, equitability: 6, salience: 7 },
+          { id: 9, title: 'Sovereign AI Compute', description: 'State investment in public compute infrastructure to reduce reliance on US tech.', position: 1, parties: ['uk'], status: 'Sensible', source: 'https://www.gov.uk', stats: [{ text: "£225m investment in Isambard-AI supercomputer.", sourceUrl: "https://www.bristol.ac.uk" }], evidence: 8, equitability: 5, salience: 4 },
+          { id: 10, title: 'Non-Enjoyment Exception', description: 'Explicitly legal to train AI on any data, regardless of copyright or purpose.', position: 8, parties: ['japan'], status: 'Policy', source: 'https://www.bunka.go.jp', stats: [{ text: "Japan Copyright Act Art 30-4: One of the world's most permissive AI laws.", sourceUrl: "https://stewartlaw.com" }], evidence: 10, equitability: 1, salience: 9 },
+          { id: 11, title: 'Anime Style Cloning', description: 'Protecting "style" of creators even if specific works aren\'t infringed.', position: -5, parties: ['japan', 'creatives'], status: 'Contested', source: 'https://www3.nhk.or.jp', stats: [{ text: "Creators demanding protection against LoRAs trained on their specific art style.", sourceUrl: "https://www.japantimes.co.jp" }], evidence: 2, equitability: 9, salience: 8 },
+          { id: 12, title: 'Socialist Core Values', description: 'AI outputs must align with state ideology; training data censored.', position: -6, parties: ['china'], status: 'Policy', source: 'http://www.cac.gov.cn', stats: [{ text: "Generative AI Measures (2023): Providers responsible for content legality.", sourceUrl: "https://digichina.stanford.edu" }], evidence: 4, equitability: 3, salience: 9 },
+          { id: 13, title: 'IP Enforcement for Training', description: 'Strict IP checks on training data to prevent Western IP pollution.', position: -2, parties: ['china'], status: 'Policy', source: 'http://www.npc.gov.cn', stats: [{ text: "Focus on preventing copyright infringement in training data sources.", sourceUrl: "https://www.reuters.com" }], evidence: 5, equitability: 6, salience: 5 },
+          { id: 14, title: 'Blacklist of Sources', description: 'Banning specific datasets that contain "illegal" content.', position: -4, parties: ['china'], status: 'Policy', source: 'http://www.cac.gov.cn', stats: [{ text: "State blacklist of data sources prohibits their use in model training.", sourceUrl: "https://www.wsj.com" }], evidence: 3, equitability: 4, salience: 7 },
+          { id: 15, title: 'Opt-In Default', description: 'AI training illegal unless explicit consent given by creator.', position: -8, parties: ['creatives'], status: 'Radical', source: 'https://www.humanartistrycampaign.com', stats: [{ text: "Universal Music Group: 'Training on our music is theft'.", sourceUrl: "https://www.universalmusic.com" }], evidence: 1, equitability: 10, salience: 9 },
+          { id: 16, title: 'Style Rights', description: 'New IP right protecting an artist\'s distinct "style" or "voice".', position: -7, parties: ['creatives'], status: 'Unthinkable', source: 'https://conceptartassociation.com', stats: [{ text: "Currently not protected by copyright law in US/UK/EU.", sourceUrl: "https://www.copyright.gov" }], evidence: 2, equitability: 9, salience: 6 },
+          { id: 17, title: 'Compulsory Licensing', description: 'Statutory license fee (like radio) for AI training on copyrighted data.', position: -1, parties: ['creatives', 'eu'], status: 'Sensible', source: 'https://www.sacem.fr', stats: [{ text: "Proposed as a middle ground: artists get paid, AI gets data.", sourceUrl: "https://www.theguardian.com" }], evidence: 7, equitability: 8, salience: 8 },
+          { id: 18, title: 'Watermarking Mandate', description: 'Invisible watermarks in all AI output to track provenance.', position: 0, parties: ['creatives', 'eu', 'usa'], status: 'Policy', source: 'https://c2pa.org', stats: [{ text: "C2PA standard adopted by Adobe, Microsoft, BBC.", sourceUrl: "https://c2pa.org" }], evidence: 6, equitability: 7, salience: 5 },
+          { id: 19, title: 'Data Poisoning', description: 'Creators using "Glaze" or "Nightshade" to corrupt AI training data.', position: -5, parties: ['creatives'], status: 'Radical', source: 'https://glaze.cs.uchicago.edu', stats: [{ text: "Nightshade can break Stable Diffusion models with just 50 poisoned images.", sourceUrl: "https://arxiv.org" }], evidence: 0, equitability: 10, salience: 8 },
+          { id: 20, title: 'AI Tax', description: 'Levy on AI compute to fund arts grants.', position: -6, parties: ['creatives'], status: 'Unthinkable', source: 'https://www.equity.org.uk', stats: [{ text: "French cultural exception model proposed for AI.", sourceUrl: "https://www.culture.gouv.fr" }], evidence: 3, equitability: 9, salience: 4 }
+        ]
+      },
+      imaging_ai: {
+        title: "AI in Medical Imaging: Narratives & Interest Groups",
+        groups: [
+          { id: 'radiologist', name: 'Radiologists (RCR)', color: '#63B3ED' },
+          { id: 'tech', name: 'AI Developers / Industry', color: '#F6AD55' },
+          { id: 'safety', name: 'Patient Safety Advocates', color: '#68D391' },
+          { id: 'nhs_admin', name: 'NHS/Hospital Admin', color: '#A0AEC0' },
+          { id: 'regulator', name: 'Regulators (MHRA/NICE)', color: '#F56565' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'General Consensus' },
+          'cautious': { min: -9, max: 1, label: 'Safety-First Block' },
+          'innovation': { min: -1, max: 9, label: 'Innovation Block' },
+          'status_quo': { min: -2, max: 2, label: 'Current Practice' }
+        },
+        yAxis: [
+          { id: 'evidence', label: 'Clinical Accuracy', description: 'Diagnostic sensitivity/specificity (0-10)' },
+          { id: 'equitability', label: 'Patient Safety', description: 'Bias & Artifact risk mitigation (0-10)' },
+          { id: 'salience', label: 'Regulatory Friction', description: 'Difficulty of approval/debate (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'Human-in-the-Loop Mandate', description: 'Every AI output must be verified by a human radiologist before reporting.', position: -1, parties: ['radiologist'], status: 'Policy', source: 'https://www.rcr.ac.uk', stats: [{ text: "RCR guidelines state AI should augment, not replace, human reporting.", sourceUrl: "https://www.rcr.ac.uk" }], evidence: 8, equitability: 9, salience: 4 },
+          { id: 2, title: 'Liability Shield', description: 'Legal protections for doctors if an AI "misses" a pathology they also missed.', position: 2, parties: ['radiologist'], status: 'Sensible', source: 'https://www.bma.org.uk', stats: [{ text: "Unclear liability is cited as a top barrier to AI adoption by clinicians.", sourceUrl: "https://www.bma.org.uk" }], evidence: 6, equitability: 5, salience: 8 },
+          { id: 3, title: 'AI as "Second Reader"', description: 'AI only used as a safety net after human review, never as primary diagnostician.', position: -3, parties: ['radiologist'], status: 'Acceptable', source: 'https://radiopaedia.org', stats: [{ text: "Dual reading reduces error rates by up to 15% in mammography.", sourceUrl: "https://www.nature.com" }], evidence: 7, equitability: 8, salience: 5 },
+          { id: 4, title: 'Autonomous Triage', description: 'AI automatically discharging "normal" scans (e.g. Chest X-rays) without human review.', position: 6, parties: ['tech'], status: 'Radical', source: 'https://www.modal.com', stats: [{ text: "Could reduce radiologist workload by 40% in high-volume settings.", sourceUrl: "https://www.thelancet.com" }], evidence: 8, equitability: 4, salience: 9 },
+          { id: 5, title: 'Continuous Learning Ops', description: 'Models that update nightly based on new hospital data without recertification.', position: 7, parties: ['tech'], status: 'Unthinkable', source: 'https://www.fda.gov', stats: [{ text: "FDA framework for 'Good Machine Learning Practice' is evolving but cautious.", sourceUrl: "https://www.fda.gov" }], evidence: 9, equitability: 3, salience: 10 },
+          { id: 6, title: 'Black Box Acceptance', description: 'Approving Deep Learning models even if the logic (feature weights) is unexplainable.', position: 4, parties: ['tech'], status: 'Contested', source: 'https://www.nature.com', stats: [{ text: "Explainability often trades off against raw performance accuracy.", sourceUrl: "https://www.nature.com" }], evidence: 7, equitability: 2, salience: 8 },
+          { id: 7, title: 'Generative Enhancement Ban', description: 'Banning Generative AI (GANs) for image reconstruction to prevent "hallucinated" tumors.', position: -5, parties: ['safety'], status: 'Radical', source: 'https://www.pnas.org', stats: [{ text: "GANs can create realistic artifacts that mimic pathology.", sourceUrl: "https://www.pnas.org" }], evidence: 5, equitability: 9, salience: 7 },
+          { id: 8, title: 'Algorithmic Bias Stress-Tests', description: 'Mandatory testing on diverse datasets (skin tones, age, comorbidity) before purchase.', position: -2, parties: ['safety'], status: 'Policy', source: 'https://www.standinguptoracism.org.uk', stats: [{ text: "Skin lesion AI often underperforms on darker skin tones.", sourceUrl: "https://www.thelancet.com" }], evidence: 9, equitability: 10, salience: 6 },
+          { id: 9, title: 'Right to Human Review', description: 'Patients legally entitled to demand a human consultant review an AI finding.', position: -4, parties: ['safety'], status: 'Acceptable', source: 'https://www.patients-association.org.uk', stats: [{ text: "Article 22 of GDPR includes right not to be subject to auto-decisions.", sourceUrl: "https://gdpr-info.eu" }], evidence: 4, equitability: 9, salience: 5 },
+          { id: 10, title: 'Cost-Per-Scan Capping', description: 'Reimbursement models that only pay for AI if it demonstrates cash savings.', position: 1, parties: ['nhs_admin'], status: 'Policy', source: 'https://www.england.nhs.uk', stats: [{ text: "NHS value frameworks prioritize cost-releasing efficiencies.", sourceUrl: "https://www.england.nhs.uk" }], evidence: 6, equitability: 6, salience: 7 },
+          { id: 11, title: 'Legacy Data Monetization', description: 'Granting bulk access to historic PACS archives to train commercial models in exchange for licenses.', position: 5, parties: ['nhs_admin'], status: 'Contested', source: 'https://transform.england.nhs.uk', stats: [{ text: "Hospitals sit on petabytes of unstructured imaging data.", sourceUrl: "https://transform.england.nhs.uk" }], evidence: 8, equitability: 4, salience: 9 },
+          { id: 12, title: 'Vendor Neutral Archives', description: 'Mandating interoperability so AI tools can be swapped out easily.', position: 0, parties: ['nhs_admin'], status: 'Sensible', source: 'https://digital.nhs.uk', stats: [{ text: "Lock-in to PACS vendors hinders AI marketplace competition.", sourceUrl: "https://digital.nhs.uk" }], evidence: 7, equitability: 7, salience: 3 },
+          { id: 13, title: 'Frozen Model Requirement', description: 'AI weights must be locked at approval; no learning in the wild.', position: -2, parties: ['regulator'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Current regulation treats AI as 'Software as a Medical Device' (SaMD).", sourceUrl: "https://www.gov.uk" }], evidence: 5, equitability: 8, salience: 5 },
+          { id: 14, title: 'Synthetic Data Validation', description: 'Allowing models to be validated on synthetic scans rather than real patient trials.', position: 3, parties: ['regulator'], status: 'Contested', source: 'https://www.nice.org.uk', stats: [{ text: "Synthetic data can speed up approval but risks 'sim-to-real' gap.", sourceUrl: "https://www.nice.org.uk" }], evidence: 4, equitability: 6, salience: 6 },
+          { id: 15, title: 'Post-Market Surveillance', description: 'Real-time auditing of live AI performance across different hospitals.', position: 0, parties: ['regulator'], status: 'Policy', source: 'https://www.mhra.gov.uk', stats: [{ text: "Performance drift in different clinical settings is a known risk.", sourceUrl: "https://www.mhra.gov.uk" }], evidence: 9, equitability: 8, salience: 4 }
+        ]
+      },
+      gobby: {
+        title: "Methodologies of Public Insight: The Gobby.io Context",
+        groups: [
+          { id: 'gobby', name: 'Co-Production Advocates', color: '#00E676' },
+          { id: 'traditional', name: 'Traditional Researchers', color: '#2979FF' },
+          { id: 'participant', name: 'Survey Participants', color: '#FF9100' },
+          { id: 'tech', name: 'Big Tech / Data Brokers', color: '#FF1744' },
+          { id: 'public_sector', name: 'Public Sector Commissioners', color: '#A0AEC0' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'General Consensus' },
+          'coproduction': { min: -9, max: -2, label: 'Co-Production Block' },
+          'standard': { min: -1, max: 4, label: 'Standard Practice' },
+          'surveillance': { min: 5, max: 9, label: 'Extraction Block' }
+        },
+        yAxis: [
+          { id: 'equitability', label: 'Participant Agency', description: 'Power given to the respondent (0-10)' },
+          { id: 'evidence', label: 'Insight Depth', description: 'Richness of qualitative data (0-10)' },
+          { id: 'salience', label: 'Adoption Friction', description: 'Resistance from institutions (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'Crowdsourced Answers', description: 'Participants write their own answers, which become options for others to vote on.', position: -6, parties: ['gobby'], status: 'Radical', source: 'https://gobby.io', stats: [{ text: "Peer-generated content creates a 40% higher engagement rate.", sourceUrl: "https://www.nesta.org.uk" }], evidence: 8, equitability: 9, salience: 7 },
+          { id: 2, title: 'Participant Voting', description: 'Allowing respondents to upvote/rank each other\'s contributions to find consensus.', position: -4, parties: ['gobby'], status: 'Sensible', source: 'https://pol.is', stats: [{ text: "Used in vTaiwan to break political deadlock.", sourceUrl: "https://www.wired.co.uk" }], evidence: 9, equitability: 8, salience: 5 },
+          { id: 3, title: 'Agenda Setting by Public', description: 'The community decides what the survey topic should be, not the organization.', position: -8, parties: ['gobby'], status: 'Unthinkable', source: 'https://www.coproductioncollective.co.uk/', stats: [{ text: "Arnstein's Ladder places this at the peak: 'Citizen Control'.", sourceUrl: "https://www.citizenshandbook.org" }], evidence: 6, equitability: 10, salience: 8 },
+          { id: 4, title: 'Fixed-Choice Taxonomy', description: 'Pre-defined answers (Likert scales) to ensure statistical comparability.', position: 0, parties: ['traditional'], status: 'Policy', source: 'https://www.surveymonkey.com', stats: [{ text: "Industry standard for 90% of quantitative research.", sourceUrl: "https://www.ons.gov.uk" }], evidence: 5, equitability: 3, salience: 2 },
+          { id: 5, title: 'Longitudinal Tracking', description: 'Asking the exact same questions for years to track trends over time.', position: 1, parties: ['traditional'], status: 'Policy', source: 'https://www.ipsos.com', stats: [{ text: "Essential for KPI tracking over time.", sourceUrl: "https://hbr.org" }], evidence: 7, equitability: 2, salience: 3 },
+          { id: 6, title: 'Weighted Samples', description: 'Manipulating data to match national demographics perfectly.', position: 0, parties: ['traditional'], status: 'Policy', source: 'https://www.yougov.co.uk', stats: [{ text: "Necessary for election polling accuracy.", sourceUrl: "https://www.britishpollingcouncil.org" }], evidence: 9, equitability: 6, salience: 4 },
+          { id: 7, title: 'Instant Transparency', description: 'Seeing the live results immediately after voting.', position: -2, parties: ['participant'], status: 'Popular', source: 'https://yougov.co.uk', stats: [{ text: "72% of respondents are more likely to finish a survey if they see results.", sourceUrl: "https://www.visioncritical.com" }], evidence: 4, equitability: 7, salience: 5 },
+          { id: 8, title: 'NPS (One-Click Feedback)', description: 'Reducing complex feedback to a single 0-10 score.', position: 4, parties: ['participant'], status: 'Popular', source: 'https://www.netpromoter.com', stats: [{ text: "Used by 2/3 of Fortune 1000 companies.", sourceUrl: "https://www.satmetrix.com" }], evidence: 2, equitability: 4, salience: 6 },
+          { id: 9, title: 'Passive Sentiment Analysis', description: 'Scraping social media/emails to infer satisfaction without asking.', position: 6, parties: ['tech'], status: 'Acceptable', source: 'https://www.qualtrics.com', stats: [{ text: "Removes 'survey bias' but introduces privacy concerns.", sourceUrl: "https://ico.org.uk" }], evidence: 6, equitability: 1, salience: 8 },
+          { id: 10, title: 'Behavioural Predictive Modelling', description: 'Relying solely on observed actions (clicks/dwell time).', position: 8, parties: ['tech'], status: 'Radical', source: 'https://shoshanazuboff.com/', stats: [{ text: "Foundation of 'Surveillance Capitalism'.", sourceUrl: "https://en.wikipedia.org" }], evidence: 9, equitability: 0, salience: 9 },
+          { id: 11, title: 'Anonymous Feedback Only', description: 'Strict anonymity to encourage whistleblowing.', position: -1, parties: ['public_sector'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Standard for NHS Staff Surveys.", sourceUrl: "https://www.nhsstaffsurveys.com/" }], evidence: 6, equitability: 5, salience: 4 },
+          { id: 12, title: 'The "You Said, We Did" Mandate', description: 'Legal requirement to publish exactly how feedback influenced decisions.', position: -3, parties: ['public_sector'], status: 'Sensible', source: 'https://www.local.gov.uk', stats: [{ text: "Failure to close the loop causes 'survey fatigue'.", sourceUrl: "https://www.customerthermometer.com" }], evidence: 7, equitability: 8, salience: 6 }
+        ]
+      },
+      ppi: {
+        title: "Approaches to Public Involvement in Health Research",
+        groups: [
+          { id: 'patient_leader', name: 'Patient Leaders', color: '#68D391' },
+          { id: 'ppi_pro', name: 'PPI Professionals', color: '#F6AD55' },
+          { id: 'funder', name: 'Funders (NIHR/UKRI)', color: '#63B3ED' },
+          { id: 'academic', name: 'Academic Researchers', color: '#A0AEC0' },
+          { id: 'industry', name: 'Industry / Tech', color: '#F56565' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'General Consensus' },
+          'coproduction': { min: -9, max: -1, label: 'Power Sharing Block' },
+          'consultation': { min: -2, max: 4, label: 'Consultation Block' },
+          'efficiency': { min: 3, max: 9, label: 'Speed/Efficiency Block' }
+        },
+        yAxis: [
+          { id: 'equitability', label: 'Power Sharing', description: 'Degree of citizen agency & equity (0-10)' },
+          { id: 'evidence', label: 'Research Impact', description: 'Evidence of improved study outcomes (0-10)' },
+          { id: 'salience', label: 'Current Salience', description: 'Media Buzz & Sector Debate (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'Citizen Veto Power', description: 'Lay panels hold a binding veto over research funding.', position: -9, parties: ['patient_leader'], status: 'Unthinkable', source: 'https://www.involve.org.uk', stats: [{ text: "Rarely realised in health research.", sourceUrl: "https://www.tandfonline.com" }], evidence: 4, equitability: 10, salience: 5 },
+          { id: 2, title: 'Community-Led Agenda Setting', description: 'Research priorities determined solely by citizens\' assemblies.', position: -7, parties: ['patient_leader'], status: 'Radical', source: 'https://www.jla.nihr.ac.uk/', stats: [{ text: "Patient priorities often differ from clinician priorities.", sourceUrl: "https://www.jla.nihr.ac.uk" }], evidence: 8, equitability: 9, salience: 7 },
+          { id: 3, title: 'Co-Applicant Mandate', description: 'No funding awarded unless a patient is a named co-applicant.', position: -4, parties: ['patient_leader'], status: 'Acceptable', source: 'https://www.nihr.ac.uk', stats: [{ text: "Co-produced research has lower attrition rates.", sourceUrl: "https://www.nature.com" }], evidence: 9, equitability: 8, salience: 8 },
+          { id: 4, title: 'Diversity Quotas', description: 'PPI groups must statistically match demographic profiles.', position: -3, parties: ['ppi_pro'], status: 'Sensible', source: 'https://www.egality.health', stats: [{ text: "Ethnic minorities underrepresented in 80% of trials.", sourceUrl: "https://www.trialforge.org/" }], evidence: 9, equitability: 9, salience: 9 },
+          { id: 5, title: 'Payment Standardization', description: 'Mandatory national payment rates for public contributors.', position: -2, parties: ['ppi_pro'], status: 'Policy', source: 'https://www.nihe.ac.uk', stats: [{ text: "Lack of payment is #1 barrier for working-class.", sourceUrl: "https://www.invo.org.uk" }], evidence: 6, equitability: 8, salience: 6 },
+          { id: 6, title: 'Plain English Audits', description: 'Lay review of all patient-facing materials.', position: -1, parties: ['ppi_pro'], status: 'Policy', source: 'https://www.hra.nhs.uk', stats: [{ text: "Clearer info sheets improve consent validity.", sourceUrl: "https://bmcmedethics.biomedcentral.com" }], evidence: 7, equitability: 7, salience: 4 },
+          { id: 7, title: 'Lay Review on Panels', description: 'Including public members on funding committees.', position: 0, parties: ['funder'], status: 'Policy', source: 'https://www.nihr.ac.uk', stats: [{ text: "Shifts funding toward 'quality of life' outcomes.", sourceUrl: "https://researchinvolvement.biomedcentral.com/" }], evidence: 8, equitability: 6, salience: 5 },
+          { id: 8, title: 'Impact Reporting', description: 'Mandatory sections detailing how PPI changed the study.', position: 1, parties: ['funder'], status: 'Policy', source: 'https://www.ref.ac.uk', stats: [{ text: "'Tokenism' remains rampant.", sourceUrl: "https://bmcmedresmethodol.biomedcentral.com" }], evidence: 5, equitability: 5, salience: 6 },
+          { id: 9, title: 'Community Champions', description: 'Funding trusted community figures to bridge gaps.', position: 2, parties: ['funder'], status: 'Sensible', source: 'https://www.communityresearch.org.uk', stats: [{ text: "Effective during COVID vaccine rollout.", sourceUrl: "https://www.local.gov.uk" }], evidence: 8, equitability: 7, salience: 8 },
+          { id: 10, title: 'Consultation Model', description: 'Using focus groups to gather views without sharing power.', position: 3, parties: ['academic'], status: 'Policy', source: 'https://mrc.ukri.org', stats: [{ text: "Default mode for 60% of pre-clinical research.", sourceUrl: "https://wellcome.org" }], evidence: 6, equitability: 4, salience: 5 },
+          { id: 11, title: 'Digital-First PPI', description: 'Conducting activities via Zoom to increase reach.', position: 4, parties: ['academic'], status: 'Sensible', source: 'https://www.turing.ac.uk', stats: [{ text: "Excludes the digital divide (11% of UK).", sourceUrl: "https://www.goodthingsfoundation.org" }], evidence: 7, equitability: 5, salience: 7 },
+          { id: 12, title: 'Retrospective Notification', description: 'Informing patients about results after completion.', position: 7, parties: ['academic'], status: 'Radical', source: 'https://www.hra.nhs.uk', stats: [{ text: "Widely regarded as poor practice.", sourceUrl: "https://www.hra.nhs.uk" }], evidence: 2, equitability: 2, salience: 4 },
+          { id: 13, title: 'Synthetic Crowds (AI)', description: 'Using LLMs to simulate patient feedback.', position: 6, parties: ['industry'], status: 'Radical', source: 'https://www.nature.com', stats: [{ text: "AI agents can predict responses with 85% accuracy.", sourceUrl: "https://www.nature.com" }], evidence: 5, equitability: 1, salience: 9 },
+          { id: 14, title: 'Passive Data Scraping', description: 'Analyzing social media to gather "Patient Voice".', position: 5, parties: ['industry'], status: 'Contested', source: 'https://www.vocal.org.uk', stats: [{ text: "Bypasses consent frameworks.", sourceUrl: "https://bmcmedethics.biomedcentral.com" }], evidence: 7, equitability: 3, salience: 6 },
+          { id: 15, title: 'Technocratic Exclusion', description: 'Excluding public due to "technical complexity".', position: 9, parties: ['industry'], status: 'Unthinkable', source: 'https://medconfidential.org', stats: [{ text: "Leads to collapse (e.g., Care.data failure).", sourceUrl: "https://www.digitalhealth.net" }], evidence: 0, equitability: 0, salience: 8 }
+        ]
+      },
+      palestine: {
+        title: "UK Foreign Policy on Palestine & Israel",
+        groups: [
+          { id: 'green', name: 'Green / SNP', color: '#68D391' },
+          { id: 'labour', name: 'Labour', color: '#F56565' },
+          { id: 'libdem', name: 'Lib Dem', color: '#F6AD55' },
+          { id: 'con', name: 'Conservative', color: '#63B3ED' },
+          { id: 'reform', name: 'Reform UK', color: '#4FD1C5' },
+          { id: 'radical', name: 'Independents/NGOs', color: '#A0AEC0' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'General Consensus' },
+          'decolonial': { min: -9, max: -2, label: 'Decolonial Block' },
+          'status_quo': { min: -1, max: 4, label: 'Status Quo Block' },
+          'security': { min: 3, max: 9, label: 'Security-First Block' }
+        },
+        yAxis: [
+          { id: 'evidence', label: 'Diplomatic Viability', description: 'Realism in geopolitics (0-10)' },
+          { id: 'equitability', label: 'Human Rights', description: 'Alignment with Intl. Law (0-10)' },
+          { id: 'salience', label: 'Political Salience', description: 'Intensity of UK debate (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'One Secular Democratic State', description: 'Single state with equal rights for all.', position: -9, parties: ['radical'], status: 'Unthinkable', source: 'https://www.odsi.co', stats: [{ text: "Zero international diplomatic support.", sourceUrl: "#" }], evidence: 1, equitability: 9, salience: 6 },
+          { id: 2, title: 'Right of Return (1948)', description: 'Full return of all refugees.', position: -9, parties: ['radical'], status: 'Unthinkable', source: 'https://www.badil.org', stats: [{ text: "UN Resolution 194 supports this.", sourceUrl: "#" }], evidence: 0, equitability: 10, salience: 5 },
+          { id: 3, title: 'Total Arms Embargo', description: 'Complete cessation of military exports to Israel.', position: -7, parties: ['green'], status: 'Radical', source: 'https://caat.org.uk', stats: [{ text: "UK arms exports ~£42m in 2022.", sourceUrl: "#" }], evidence: 3, equitability: 8, salience: 9 },
+          { id: 4, title: 'BDS Adoption', description: 'State-sanctioned Boycott, Divestment and Sanctions.', position: -6, parties: ['green'], status: 'Radical', source: 'https://bdsmovement.net', stats: [{ text: "Opposed by major UK parties.", sourceUrl: "#" }], evidence: 2, equitability: 7, salience: 8 },
+          { id: 5, title: 'Prosecution of Leaders', description: 'Supporting ICC arrest warrants.', position: -5, parties: ['radical'], status: 'Radical', source: 'https://www.icc-cpi.int', stats: [{ text: "Legally sound, politically difficult.", sourceUrl: "#" }], evidence: 4, equitability: 9, salience: 10 },
+          { id: 6, title: 'Immediate Recognition', description: 'Unilateral recognition of State of Palestine.', position: -4, parties: ['labour'], status: 'Acceptable', source: 'https://labour.org.uk', stats: [{ text: "Spain, Ireland, Norway recently recognized.", sourceUrl: "#" }], evidence: 6, equitability: 8, salience: 9 },
+          { id: 7, title: 'Ban Settlement Goods', description: 'Prohibiting import from West Bank settlements.', position: -3, parties: ['libdem'], status: 'Sensible', source: 'https://www.amnesty.org.uk', stats: [{ text: "Settlements illegal under international law.", sourceUrl: "#" }], evidence: 5, equitability: 9, salience: 6 },
+          { id: 8, title: 'Restoration of UNRWA Funding', description: 'Full funding for UN relief agency.', position: -2, parties: ['labour'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Critical for Gaza aid distribution.", sourceUrl: "#" }], evidence: 9, equitability: 10, salience: 8 },
+          { id: 9, title: 'Two-State Solution', description: 'Policy supporting two states (1967 borders).', position: 0, parties: ['con'], status: 'Policy', source: 'https://commonslibrary.parliament.uk', stats: [{ text: "Official UK policy for decades.", sourceUrl: "#" }], evidence: 3, equitability: 6, salience: 7 },
+          { id: 10, title: 'Hamas Proscription', description: 'Designating Hamas as terrorist organization.', position: 0, parties: ['con'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Fully enacted law.", sourceUrl: "#" }], evidence: 10, equitability: 5, salience: 6 },
+          { id: 11, title: 'Humanitarian Pauses', description: 'Temporary ceasefires for aid.', position: 1, parties: ['con'], status: 'Policy', source: 'https://hansard.parliament.uk', stats: [{ text: "Supported by US/UK leadership.", sourceUrl: "#" }], evidence: 8, equitability: 6, salience: 9 },
+          { id: 12, title: 'Israel\'s Right to Defend', description: 'Support for military action against Hamas.', position: 2, parties: ['con'], status: 'Policy', source: 'https://www.conservatives.com', stats: [{ text: "Core western alliance stance.", sourceUrl: "#" }], evidence: 9, equitability: 4, salience: 10 },
+          { id: 13, title: 'Anti-BDS Legislation', description: 'Banning public bodies from boycotting.', position: 3, parties: ['con'], status: 'Policy', source: 'https://bills.parliament.uk', stats: [{ text: "Passed commons despite free speech concerns.", sourceUrl: "#" }], evidence: 9, equitability: 3, salience: 7 },
+          { id: 14, title: 'Oppose ICC Jurisdiction', description: 'Arguing ICC has no jurisdiction over Israel.', position: 3, parties: ['con'], status: 'Contested', source: 'https://www.lawgazette.co.uk', stats: [{ text: "Israel is not an ICC signatory.", sourceUrl: "#" }], evidence: 6, equitability: 2, salience: 8 },
+          { id: 15, title: 'Move Embassy to Jerusalem', description: 'Recognizing Jerusalem as capital.', position: 5, parties: ['reform'], status: 'Radical', source: 'https://www.reformparty.uk', stats: [{ text: "Follows Trump precedent.", sourceUrl: "#" }], evidence: 4, equitability: 1, salience: 5 },
+          { id: 16, title: 'Defund Palestinian Authority', description: 'Cutting aid due to payments.', position: 6, parties: ['reform'], status: 'Radical', source: 'https://www.taxpayersalliance.com', stats: [{ text: "Risks West Bank collapse.", sourceUrl: "#" }], evidence: 5, equitability: 2, salience: 4 },
+          { id: 17, title: 'Military Support Deployment', description: 'Direct UK military involvement.', position: 6, parties: ['con'], status: 'Contested', source: 'https://declassifieduk.org', stats: [{ text: "Surveillance flights reported.", sourceUrl: "#" }], evidence: 7, equitability: 2, salience: 8 },
+          { id: 18, title: 'Recognize Annexation', description: 'Accepting Israeli sovereignty over West Bank.', position: 8, parties: ['radical'], status: 'Unthinkable', source: 'https://en.wikipedia.org', stats: [{ text: "Breaches international law.", sourceUrl: "#" }], evidence: 1, equitability: 0, salience: 3 },
+          { id: 19, title: '"Voluntary" Resettlement', description: 'Transfer of Gazans to third countries.', position: 9, parties: ['radical'], status: 'Unthinkable', source: 'https://www.972mag.com', stats: [{ text: "Egypt/Jordan refuse; ethnic cleansing concerns.", sourceUrl: "#" }], evidence: 0, equitability: 0, salience: 4 },
+          { id: 20, title: 'Revoke Visas for Protestors', description: 'Deporting foreign nationals who protest.', position: 7, parties: ['reform'], status: 'Radical', source: 'https://www.telegraph.co.uk', stats: [{ text: "Threat to civil liberties.", sourceUrl: "#" }], evidence: 4, equitability: 2, salience: 9 }
+        ]
+      },
+      ai_health: {
+        title: "AI in Healthcare Policy",
+        groups: [
+          { id: 'green', name: 'Green Party', color: '#68D391' },
+          { id: 'labour', name: 'Labour', color: '#F56565' },
+          { id: 'libdem', name: 'Lib Dem', color: '#F6AD55' },
+          { id: 'con', name: 'Conservative', color: '#63B3ED' },
+          { id: 'reform', name: 'Reform', color: '#4FD1C5' },
+          { id: 'tech', name: 'Tech Lobby', color: '#A0AEC0' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'General Consensus' },
+          'privacy': { min: -9, max: -2, label: 'Privacy First' },
+          'open': { min: -4, max: 4, label: 'Open Data' },
+          'market': { min: 2, max: 9, label: 'Market Driven' }
+        },
+        yAxis: [
+          { id: 'evidence', label: 'Clinical Impact', description: 'Efficacy & Efficiency (0-10)' },
+          { id: 'equitability', label: 'Health Equity', description: 'Access & Digital Divide (0-10)' },
+          { id: 'salience', label: 'Public Trust', description: 'Privacy & Controversy (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'Ban AI in Clinical Decisions', description: 'Prohibiting algorithmic assistance.', position: -9, parties: ['radical'], status: 'Unthinkable', source: 'https://www.medscape.co.uk', stats: [{ text: "Ignores efficiency gains.", sourceUrl: "#" }], evidence: 1, equitability: 4, salience: 3 },
+          { id: 2, title: 'Return to Paper Records', description: 'Scrapping digital databases.', position: -8, parties: ['radical'], status: 'Unthinkable', source: 'https://www.privacyinternational.org', stats: [{ text: "Prevents hacks but inefficient.", sourceUrl: "#" }], evidence: 0, equitability: 2, salience: 2 },
+          { id: 3, title: 'Sovereign NHS AI Cloud', description: 'Banning US tech giants from NHS.', position: -6, parties: ['green'], status: 'Radical', source: 'https://www.foxglove.org.uk', stats: [{ text: "Palantir protests highlight concern.", sourceUrl: "#" }], evidence: 5, equitability: 7, salience: 9 },
+          { id: 4, title: 'Patient Data Ownership', description: 'Patients paid dividends for data use.', position: -5, parties: ['green'], status: 'Radical', source: 'https://www.ada.lovelace.ac.uk', stats: [{ text: "Administrative nightmare.", sourceUrl: "#" }], evidence: 3, equitability: 8, salience: 6 },
+          { id: 5, title: 'Open Source Mandate', description: 'All NHS AI must be open source.', position: -4, parties: ['labour'], status: 'Acceptable', source: 'https://www.bennett.ox.ac.uk', stats: [{ text: "Improves trust and safety.", sourceUrl: "#" }], evidence: 8, equitability: 9, salience: 5 },
+          { id: 6, title: 'Strict "Human-in-the-Loop"', description: 'Doctor sign-off required on AI output.', position: -3, parties: ['labour'], status: 'Sensible', source: 'https://www.bma.org.uk', stats: [{ text: "Safety vs Speed tradeoff.", sourceUrl: "#" }], evidence: 7, equitability: 7, salience: 8 },
+          { id: 7, title: 'Algorithmic Bias Audits', description: 'Mandatory equity checks.', position: -2, parties: ['libdem'], status: 'Sensible', source: 'https://www.gov.uk', stats: [{ text: "Ensures fairness.", sourceUrl: "#" }], evidence: 9, equitability: 10, salience: 6 },
+          { id: 8, title: 'Federated Data Platform', description: 'Centralized NHS data OS.', position: 0, parties: ['con'], status: 'Policy', source: 'https://www.england.nhs.uk', stats: [{ text: "Efficiency gains for waiting lists.", sourceUrl: "#" }], evidence: 8, equitability: 5, salience: 10 },
+          { id: 9, title: 'AI in Radiology', description: 'Routine AI screening of scans.', position: 0, parties: ['con'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Proven clinical utility.", sourceUrl: "#" }], evidence: 10, equitability: 7, salience: 4 },
+          { id: 10, title: 'Virtual Wards', description: 'Remote AI monitoring at home.', position: 1, parties: ['con'], status: 'Policy', source: 'https://www.england.nhs.uk', stats: [{ text: "Frees up beds.", sourceUrl: "#" }], evidence: 7, equitability: 4, salience: 6 },
+          { id: 11, title: 'AI GP Triage (111)', description: 'Chatbots as first contact.', position: 2, parties: ['con'], status: 'Policy', source: 'https://digital.nhs.uk', stats: [{ text: "Efficient but risks missing nuance.", sourceUrl: "#" }], evidence: 6, equitability: 3, salience: 8 },
+          { id: 12, title: 'Private Tech Partnerships', description: 'Integration with Google/Microsoft.', position: 3, parties: ['con'], status: 'Acceptable', source: 'https://healthmedia.blog.gov.uk', stats: [{ text: "Accelerates innovation.", sourceUrl: "#" }], evidence: 8, equitability: 5, salience: 7 },
+          { id: 13, title: 'Genomic AI Profiling', description: 'AI prediction from DNA.', position: 4, parties: ['tech'], status: 'Contested', source: 'https://www.genomicsengland.co.uk', stats: [{ text: "Advanced preventative care.", sourceUrl: "#" }], evidence: 8, equitability: 6, salience: 7 },
+          { id: 14, title: 'Selling NHS Data', description: 'Data sold to pharma for funding.', position: 5, parties: ['reform'], status: 'Radical', source: 'https://iea.org.uk', stats: [{ text: "Huge revenue potential.", sourceUrl: "#" }], evidence: 9, equitability: 5, salience: 10 },
+          { id: 15, title: 'Automated Prescribing', description: 'AI issuing prescriptions.', position: 6, parties: ['tech'], status: 'Radical', source: 'https://www.pharmaceutical-journal.com', stats: [{ text: "High risk of error.", sourceUrl: "#" }], evidence: 6, equitability: 6, salience: 9 },
+          { id: 16, title: 'Lifestyle Surveillance', description: 'Wearables linked to insurance.', position: 6, parties: ['tech'], status: 'Radical', source: 'https://www.nuffieldbioethics.org', stats: [{ text: "Penalizes poor.", sourceUrl: "#" }], evidence: 7, equitability: 2, salience: 8 },
+          { id: 17, title: 'AI Primary Care Replacement', description: 'Kiosks replacing GPs.', position: 7, parties: ['tech'], status: 'Radical', source: 'https://www.babylonhealth.com', stats: [{ text: "Misses human empathy.", sourceUrl: "#" }], evidence: 4, equitability: 5, salience: 9 },
+          { id: 18, title: 'Mandatory Implantables', description: 'Chips for monitoring.', position: 9, parties: ['radical'], status: 'Unthinkable', source: 'https://www.weforum.org', stats: [{ text: "Extreme invasion of privacy.", sourceUrl: "#" }], evidence: 5, equitability: 1, salience: 10 },
+          { id: 19, title: 'Predictive Care Denial', description: 'AI denying treatment based on stats.', position: 9, parties: ['radical'], status: 'Unthinkable', source: 'https://www.kingsfund.org.uk', stats: [{ text: "Utilitarian efficiency vs ethics.", sourceUrl: "#" }], evidence: 6, equitability: 0, salience: 10 }
+        ]
+      },
+      immigration: {
+        title: "UK Immigration Policy",
+        groups: [
+          { id: 'green', name: 'Green Party', color: '#68D391' },
+          { id: 'labour', name: 'Labour', color: '#F56565' },
+          { id: 'libdem', name: 'Lib Dem', color: '#F6AD55' },
+          { id: 'con', name: 'Conservative', color: '#63B3ED' },
+          { id: 'reform', name: 'Reform', color: '#4FD1C5' },
+          { id: 'radical', name: 'Independent', color: '#A0AEC0' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'General Consensus' },
+          'open': { min: -9, max: -2, label: 'Open Borders' },
+          'control': { min: -1, max: 5, label: 'Controlled' },
+          'closed': { min: 6, max: 9, label: 'Closed Borders' }
+        },
+        yAxis: [
+          { id: 'evidence', label: 'Economic Impact', description: 'GDP/Per Capita contribution (0-10)' },
+          { id: 'equitability', label: 'Human Rights', description: 'Alignment with intl. conventions (0-10)' },
+          { id: 'salience', label: 'Media Buzz', description: 'Current controversy level (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'Abolish National Borders', description: 'Complete freedom of movement.', position: -9, parties: ['radical'], status: 'Unthinkable', source: 'https://openborders.info/', stats: [{ text: "Global GDP boost vs local strain.", sourceUrl: "#" }], evidence: 7, equitability: 10, salience: 2 },
+          { id: 2, title: 'Voting Rights for Non-Citizens', description: 'Residents vote immediately.', position: -8, parties: ['green'], status: 'Unthinkable', source: 'https://www.migrantsrights.org.uk/', stats: [{ text: "Expanding democracy.", sourceUrl: "#" }], evidence: 5, equitability: 9, salience: 3 },
+          { id: 3, title: 'Full Asylum Right to Work', description: 'Work immediately upon arrival.', position: -6, parties: ['green'], status: 'Radical', source: 'https://lifttheban.co.uk', stats: [{ text: "Fills vacancies.", sourceUrl: "#" }], evidence: 8, equitability: 9, salience: 6 },
+          { id: 4, title: 'Amnesty for Undocumented', description: 'Legal status for irregulars.', position: -5, parties: ['green'], status: 'Radical', source: 'https://jcwi.org.uk', stats: [{ text: "Regularizes status.", sourceUrl: "#" }], evidence: 6, equitability: 8, salience: 7 },
+          { id: 5, title: 'Safe Passage Visas', description: 'Humanitarian visas issued abroad.', position: -4, parties: ['libdem'], status: 'Acceptable', source: 'https://www.libdems.org.uk', stats: [{ text: "Reduces channel crossings.", sourceUrl: "#" }], evidence: 7, equitability: 9, salience: 8 },
+          { id: 6, title: 'Scrap "Hostile Environment"', description: 'Repealing internal checks.', position: -3, parties: ['labour'], status: 'Acceptable', source: 'https://www.labour.org.uk', stats: [{ text: "Windrush scandal fallout.", sourceUrl: "#" }], evidence: 5, equitability: 8, salience: 6 },
+          { id: 7, title: 'Regional Visas', description: 'Visas tied to regions.', position: -2, parties: ['libdem'], status: 'Sensible', source: 'https://www.snp.org', stats: [{ text: "Targeted growth.", sourceUrl: "#" }], evidence: 8, equitability: 6, salience: 5 },
+          { id: 8, title: 'Points Based System', description: 'Skills/Salary based entry.', position: 0, parties: ['con'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Current system.", sourceUrl: "#" }], evidence: 7, equitability: 5, salience: 8 },
+          { id: 9, title: 'Health & Care Visa', description: 'Fast-track for NHS.', position: -1, parties: ['con'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Critical for NHS.", sourceUrl: "#" }], evidence: 9, equitability: 6, salience: 9 },
+          { id: 10, title: 'High Salary Thresholds', description: 'Raising minimum income.', position: 1, parties: ['con'], status: 'Policy', source: 'https://homeofficemedia.blog.gov.uk', stats: [{ text: "Risks shortages.", sourceUrl: "#" }], evidence: 4, equitability: 4, salience: 10 },
+          { id: 11, title: 'Ban on Care Dependents', description: 'No family members for care workers.', position: 2, parties: ['con'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "May deter workers.", sourceUrl: "#" }], evidence: 3, equitability: 3, salience: 9 },
+          { id: 12, title: 'Annual Net Migration Cap', description: 'Strict numerical limit.', position: 3, parties: ['con'], status: 'Acceptable', source: 'https://www.conservativehome.com', stats: [{ text: "Arbitrary limits hurt economy.", sourceUrl: "#" }], evidence: 2, equitability: 4, salience: 9 },
+          { id: 13, title: 'Offshore Processing', description: 'Claims processed abroad.', position: 4, parties: ['con'], status: 'Contested', source: 'https://www.gov.uk', stats: [{ text: "High cost.", sourceUrl: "#" }], evidence: 4, equitability: 2, salience: 8 },
+          { id: 14, title: 'Rwanda Scheme', description: 'Deportation for settlement.', position: 5, parties: ['con'], status: 'Contested', source: 'https://www.gov.uk', stats: [{ text: "Deterrent unproven.", sourceUrl: "#" }], evidence: 2, equitability: 1, salience: 10 },
+          { id: 15, title: 'Leave ECHR', description: 'Exiting rights court.', position: 6, parties: ['reform'], status: 'Radical', source: 'https://www.reformparty.uk', stats: [{ text: "Risks trade deals.", sourceUrl: "#" }], evidence: 3, equitability: 1, salience: 9 },
+          { id: 16, title: 'Employer Tax on Foreign Labor', description: 'Taxing companies hiring non-UK.', position: 6, parties: ['reform'], status: 'Radical', source: 'https://www.reformparty.uk', stats: [{ text: "Incentivize local hire.", sourceUrl: "#" }], evidence: 4, equitability: 5, salience: 7 },
+          { id: 17, title: '"Net Zero" Migration', description: 'One in, one out.', position: 7, parties: ['reform'], status: 'Radical', source: 'https://www.reformparty.uk', stats: [{ text: "Demographic crisis risk.", sourceUrl: "#" }], evidence: 2, equitability: 4, salience: 8 },
+          { id: 18, title: 'Remigration / Repatriation', description: 'State-sponsored return.', position: 8, parties: ['radical'], status: 'Unthinkable', source: 'https://hopehatenot.org.uk', stats: [{ text: "Economic disaster.", sourceUrl: "#" }], evidence: 0, equitability: 0, salience: 5 },
+          { id: 19, title: 'Complete Border Closure', description: 'Total moratorium.', position: 9, parties: ['radical'], status: 'Unthinkable', source: 'https://en.wikipedia.org', stats: [{ text: "Isolationism.", sourceUrl: "#" }], evidence: 0, equitability: 0, salience: 2 },
+          { id: 20, title: 'ID Cards for All', description: 'Mandatory ID to track status.', position: 1, parties: ['labour'], status: 'Contested', source: 'https://www.tonyblairinstitute.org', stats: [{ text: "Civil liberties concern.", sourceUrl: "#" }], evidence: 6, equitability: 5, salience: 6 }
+        ]
+      },
+      environment: {
+        title: "Environmental Policy",
+        groups: [
+          { id: 'green', name: 'Green Party', color: '#68D391' },
+          { id: 'labour', name: 'Labour', color: '#F56565' },
+          { id: 'libdem', name: 'Lib Dem', color: '#F6AD55' },
+          { id: 'con', name: 'Conservative', color: '#63B3ED' },
+          { id: 'reform', name: 'Reform', color: '#4FD1C5' },
+          { id: 'radical', name: 'Radical/Ind', color: '#A0AEC0' }
+        ],
+        windows: {
+          'all': { min: -3, max: 3, label: 'General Consensus' },
+          'radical_green': { min: -9, max: -2, label: 'Radical Green' },
+          'mainstream': { min: -1, max: 2, label: 'Mainstream' },
+          'sceptic': { min: 3, max: 9, label: 'Sceptic/Delay' }
+        },
+        yAxis: [
+          { id: 'evidence', label: 'Scientific Support', description: 'Strength of data (0-10)' },
+          { id: 'equitability', label: 'Equality', description: 'Fairness (0-10)' },
+          { id: 'salience', label: 'Media Buzz', description: 'Public awareness (0-10)' }
+        ],
+        policies: [
+          { id: 1, title: 'Mandatory Veganism', description: 'Enforced plant-based diet.', position: -9, parties: ['radical'], status: 'Unthinkable', source: 'https://en.wikipedia.org/wiki/Veganism', stats: [{ text: "High impact on emissions.", sourceUrl: "#" }], evidence: 9, equitability: 2, salience: 9 },
+          { id: 2, title: 'Ban Private Jets', description: 'Prohibition of private aviation.', position: -6, parties: ['green'], status: 'Radical', source: 'https://www.greenpeace.org', stats: [{ text: "High emissions per capita saved.", sourceUrl: "#" }], evidence: 8, equitability: 10, salience: 8 },
+          { id: 3, title: 'Green New Deal', description: 'State investment in green jobs.', position: -3, parties: ['labour'], status: 'Acceptable', source: 'https://www.labour.org.uk', stats: [{ text: "Economic stimulus.", sourceUrl: "#" }], evidence: 8, equitability: 8, salience: 7 },
+          { id: 4, title: 'Net Zero 2050', description: 'Legally binding target.', position: 0, parties: ['con'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Consensus target.", sourceUrl: "#" }], evidence: 10, equitability: 6, salience: 9 },
+          { id: 5, title: 'Carbon Tax', description: 'Direct tax on emissions.', position: 2, parties: ['libdem'], status: 'Sensible', source: 'https://www.libdems.org.uk', stats: [{ text: "Economists preferred tool.", sourceUrl: "#" }], evidence: 9, equitability: 5, salience: 6 },
+          { id: 6, title: 'Expand North Sea Oil', description: 'New oil/gas licenses.', position: 5, parties: ['reform'], status: 'Contested', source: 'https://commonslibrary.parliament.uk', stats: [{ text: "Contradicts climate goals.", sourceUrl: "#" }], evidence: 1, equitability: 5, salience: 9 },
+          { id: 7, title: 'Abolish EPA/Defra', description: 'Remove regulators.', position: 9, parties: ['radical'], status: 'Unthinkable', source: 'https://en.wikipedia.org', stats: [{ text: "Environmental disaster risk.", sourceUrl: "#" }], evidence: 0, equitability: 2, salience: 4 },
+          { id: 8, title: 'Degrowth Economy', description: 'Shrinking GDP.', position: -8, parties: ['radical'], status: 'Unthinkable', source: 'https://www.weforum.org', stats: [{ text: "Resource preservation.", sourceUrl: "#" }], evidence: 6, equitability: 7, salience: 5 },
+          { id: 9, title: 'Free Public Transport', description: 'Zero-fare transit.', position: -5, parties: ['green'], status: 'Radical', source: 'https://policy.greenparty.org.uk', stats: [{ text: "Reduces car use.", sourceUrl: "#" }], evidence: 8, equitability: 10, salience: 7 },
+          { id: 10, title: 'Legal Rights for Nature', description: 'Personhood for ecosystems.', position: -7, parties: ['green'], status: 'Radical', source: 'https://www.lawyersfornature.com', stats: [{ text: "Legal innovation.", sourceUrl: "#" }], evidence: 6, equitability: 8, salience: 4 },
+          { id: 11, title: 'Meat Tax', description: 'Levy on meat.', position: -4, parties: ['green'], status: 'Radical', source: 'https://www.theguardian.com', stats: [{ text: "Scientifically solid.", sourceUrl: "#" }], evidence: 9, equitability: 4, salience: 9 },
+          { id: 12, title: 'Four Day Work Week', description: 'Reducing hours.', position: -2, parties: ['labour'], status: 'Sensible', source: 'https://autonomy.work', stats: [{ text: "Lowers consumption.", sourceUrl: "#" }], evidence: 6, equitability: 9, salience: 7 },
+          { id: 13, title: 'Frequent Flyer Levy', description: 'Progressive flight tax.', position: -1, parties: ['libdem'], status: 'Sensible', source: 'https://www.libdems.org.uk', stats: [{ text: "Polluter pays.", sourceUrl: "#" }], evidence: 9, equitability: 9, salience: 6 },
+          { id: 14, title: 'Tidal Lagoon Power', description: 'Coastal energy.', position: -1, parties: ['labour'], status: 'Acceptable', source: 'https://www.gov.uk', stats: [{ text: "Renewable source.", sourceUrl: "#" }], evidence: 7, equitability: 6, salience: 4 },
+          { id: 15, title: 'Rewilding 30% of Land', description: 'Nature restoration.', position: -3, parties: ['green'], status: 'Sensible', source: 'https://www.rewildingbritain.org.uk', stats: [{ text: "Biodiversity boost.", sourceUrl: "#" }], evidence: 9, equitability: 5, salience: 6 },
+          { id: 16, title: 'Nationwide ULEZ', description: 'Emission zones everywhere.', position: 1, parties: ['labour'], status: 'Contested', source: 'https://tfl.gov.uk', stats: [{ text: "Air quality improvement.", sourceUrl: "#" }], evidence: 9, equitability: 5, salience: 10 },
+          { id: 17, title: 'Small Modular Reactors', description: 'Nuclear rollout.', position: 3, parties: ['con'], status: 'Policy', source: 'https://www.gov.uk', stats: [{ text: "Low carbon base load.", sourceUrl: "#" }], evidence: 7, equitability: 6, salience: 6 },
+          { id: 18, title: 'Carbon Capture Storage', description: 'Buring CO2.', position: 2, parties: ['con'], status: 'Policy', source: 'https://www.iea.org', stats: [{ text: "Unproven at scale.", sourceUrl: "#" }], evidence: 5, equitability: 4, salience: 6 },
+          { id: 19, title: 'Fusion Energy Investment', description: 'Experimental power.', position: 1, parties: ['con'], status: 'Sensible', source: 'https://ccfe.ukaea.uk', stats: [{ text: "Long term potential.", sourceUrl: "#" }], evidence: 5, equitability: 5, salience: 5 },
+          { id: 20, title: 'Hydrogen for Heating', description: 'Hydrogen boilers.', position: 2, parties: ['con'], status: 'Contested', source: 'https://www.nationalgrid.com', stats: [{ text: "Inefficient vs heat pumps.", sourceUrl: "#" }], evidence: 3, equitability: 5, salience: 5 },
+          { id: 21, title: 'Fracking Legalization', description: 'Shale gas extraction.', position: 6, parties: ['reform'], status: 'Contested', source: 'https://www.reformparty.uk', stats: [{ text: "Local environment risks.", sourceUrl: "#" }], evidence: 3, equitability: 4, salience: 8 },
+          { id: 22, title: 'Scrap EV Mandate', description: 'Keep petrol cars.', position: 5, parties: ['reform'], status: 'Contested', source: 'https://www.reformparty.uk', stats: [{ text: "Slows transition.", sourceUrl: "#" }], evidence: 2, equitability: 6, salience: 9 },
+          { id: 23, title: 'Reopen Coal Mines', description: 'New deep coal mines.', position: 7, parties: ['reform'], status: 'Latent', source: 'https://www.bbc.co.uk', stats: [{ text: "Highly polluting.", sourceUrl: "#" }], evidence: 0, equitability: 4, salience: 8 },
+          { id: 24, title: 'Exit Paris Agreement', description: 'Quit climate treaties.', position: 8, parties: ['radical'], status: 'Unthinkable', source: 'https://unfccc.int', stats: [{ text: "International pariah status.", sourceUrl: "#" }], evidence: 0, equitability: 1, salience: 7 },
+          { id: 25, title: 'Voluntary Recycling', description: 'Optional recycling.', position: 7, parties: ['radical'], status: 'Latent', source: 'https://www.local.gov.uk', stats: [{ text: "Increases landfill.", sourceUrl: "#" }], evidence: 1, equitability: 5, salience: 3 },
+          { id: 26, title: 'Climate Skepticism in Schools', description: 'Teaching debate not fact.', position: 9, parties: ['radical'], status: 'Unthinkable', source: 'https://educationhub.blog.gov.uk', stats: [{ text: "Misinforms students.", sourceUrl: "#" }], evidence: 0, equitability: 2, salience: 6 },
+          { id: 27, title: 'Solar Farms on Golf Courses', description: 'Land use change.', position: -2, parties: ['libdem'], status: 'Sensible', source: 'https://www.cpre.org.uk', stats: [{ text: "Efficient land use.", sourceUrl: "#" }], evidence: 8, equitability: 9, salience: 5 }
+        ]
+      }
+    };
+
+    // --- Three.js Component ---
+
+    const OvertonViz = ({ policies, activeParties, setHoveredPolicy, yAxisMode, ageGroup, theme, selectedPolicy, setSelectedPolicy, wobble, interestGroups }) => {
+      const mountRef = useRef(null);
+      const sceneRef = useRef(null);
+      const cameraRef = useRef(null);
+      const rendererRef = useRef(null);
+      const spheresRef = useRef([]);
+      const windowMeshRef = useRef(null);
+      const frameIdRef = useRef(null);
+      const raycaster = useRef(new THREE.Raycaster());
+      const mouse = useRef(new THREE.Vector2(-1000, -1000));
+      const gridHelperRef = useRef(null);
+      const axisLinesRef = useRef([]);
+
+      const yAxisModeRef = useRef(yAxisMode);
+      const wobbleRef = useRef(wobble);
+      const activePartiesRef = useRef(activeParties);
+
+      useEffect(() => { yAxisModeRef.current = yAxisMode; }, [yAxisMode]);
+      useEffect(() => { wobbleRef.current = wobble; }, [wobble]);
+      useEffect(() => { activePartiesRef.current = activeParties; }, [activeParties]);
+
+      const visiblePolicies = useMemo(() => {
+        return policies.filter(p => p.parties.some(party => activeParties.includes(party)));
+      }, [policies, activeParties]);
+
+      const currentDataset = DATASETS[Object.keys(DATASETS).find(key => JSON.stringify(DATASETS[key].policies) === JSON.stringify(policies))] || DATASETS.health_ip;
+      const windows = currentDataset.windows;
+      const currentWindow = windows[ageGroup] || windows[Object.keys(windows)[0]];
+      const windowWidth = currentWindow.max - currentWindow.min;
+      const windowCenter = (currentWindow.max + currentWindow.min) / 2;
+
+      const bgColor = theme === 'dark' ? '#111827' : '#ffffff';
+      const gridColor = theme === 'dark' ? 0x1f2937 : 0xe5e7eb;
+      const axisColor = theme === 'dark' ? 0x4b5563 : 0x9ca3af;
+
+      const generateTexture = (colors) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128; canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        if (colors.length === 1) {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, 128, 128);
+        } else {
+          const gradient = ctx.createLinearGradient(0, 0, 128, 0);
+          colors.forEach((c, i) => {
+            const start = i / colors.length;
+            const end = (i + 1) / colors.length;
+            gradient.addColorStop(start + 0.05, c);
+            gradient.addColorStop(end - 0.05, c);
+          });
+          ctx.fillStyle = gradient; ctx.fillRect(0, 0, 128, 128);
+        }
+        return new THREE.CanvasTexture(canvas);
+      };
+
+      useEffect(() => {
+        if (sceneRef.current) {
+          sceneRef.current.background = new THREE.Color(bgColor);
+          sceneRef.current.fog = new THREE.FogExp2(bgColor, 0.035);
+          if (gridHelperRef.current) {
+            sceneRef.current.remove(gridHelperRef.current);
+            const gridHelper = new THREE.GridHelper(40, 40, gridColor, gridColor);
+            gridHelper.position.y = -1; gridHelper.material.opacity = 0.4; gridHelper.material.transparent = true;
+            sceneRef.current.add(gridHelper); gridHelperRef.current = gridHelper;
+          }
+          axisLinesRef.current.forEach(line => line.material.color.setHex(axisColor));
+        }
+      }, [theme]);
+
+      useEffect(() => {
+        const width = mountRef.current.clientWidth || 1;
+        const height = mountRef.current.clientHeight || 1;
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(bgColor);
+        scene.fog = new THREE.FogExp2(bgColor, 0.035);
+
+        const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+        camera.position.set(0, 5, 18); camera.lookAt(0, 2, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(width, height); renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        mountRef.current.appendChild(renderer.domElement);
+
+        sceneRef.current = scene; cameraRef.current = camera; rendererRef.current = renderer;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const spotLight = new THREE.SpotLight(0xffffff, 1.5);
+        spotLight.position.set(10, 20, 10); spotLight.castShadow = true;
+        scene.add(spotLight);
+
+        const boxGeo = new THREE.BoxGeometry(1, 10, 4);
+        const boxMat = new THREE.MeshPhongMaterial({ color: 0x14b8a6, transparent: true, opacity: 0.08, side: THREE.DoubleSide });
+        const winMesh = new THREE.Mesh(boxGeo, boxMat);
+        winMesh.position.y = 4; scene.add(winMesh); windowMeshRef.current = winMesh;
+
+        const edges = new THREE.EdgesGeometry(boxGeo);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x2dd4bf, transparent: true, opacity: 0.3 });
+        winMesh.add(new THREE.LineSegments(edges, lineMat));
+
+        const axisMat = new THREE.LineBasicMaterial({ color: axisColor, transparent: true, opacity: 0.5 });
+        const axisX = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-14, 0, 0), new THREE.Vector3(14, 0, 0)]), axisMat);
+        scene.add(axisX); axisLinesRef.current.push(axisX);
+        const axisY = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-12, -2, 0), new THREE.Vector3(-12, 10, 0)]), axisMat);
+        scene.add(axisY); axisLinesRef.current.push(axisY);
+
+        const gridHelper = new THREE.GridHelper(40, 40, gridColor, gridColor);
+        gridHelper.position.y = -1; gridHelper.material.opacity = 0.4; gridHelper.material.transparent = true;
+        scene.add(gridHelper); gridHelperRef.current = gridHelper;
+
+        const handleMouseMove = (event) => {
+          const rect = renderer.domElement.getBoundingClientRect();
+          mouse.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+          mouse.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        };
+        mountRef.current.addEventListener('mousemove', handleMouseMove);
+
+        const handleClick = () => {
+          if (!raycaster.current || !cameraRef.current) return;
+          raycaster.current.setFromCamera(mouse.current, cameraRef.current);
+          const intersects = raycaster.current.intersectObjects(spheresRef.current.map(s => s.mesh));
+          if (intersects.length > 0) {
+            setSelectedPolicy(spheresRef.current.find(s => s.mesh === intersects[0].object)?.data);
+          } else setSelectedPolicy(null);
+        };
+        mountRef.current.addEventListener('click', handleClick);
+
+        const handleResize = () => {
+          if (!mountRef.current || !cameraRef.current || !rendererRef.current) return;
+          cameraRef.current.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight;
+          cameraRef.current.updateProjectionMatrix();
+          rendererRef.current.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+        };
+        window.addEventListener('resize', handleResize);
+
+        const animate = () => {
+          frameIdRef.current = requestAnimationFrame(animate);
+          spheresRef.current.forEach((obj, idx) => {
+            const targetY = (obj.data[yAxisModeRef.current] || 0) * 0.8;
+            obj.mesh.position.y += (targetY - obj.mesh.position.y) * 0.08;
+            if (wobbleRef.current) {
+              obj.mesh.position.y += Math.sin(Date.now() * 0.0005 + obj.xPos + idx) * 0.003;
+              obj.mesh.rotation.y += 0.005; obj.mesh.rotation.z += 0.002;
+            }
+          });
+          raycaster.current.setFromCamera(mouse.current, camera);
+          const intersects = raycaster.current.intersectObjects(spheresRef.current.map(s => s.mesh));
+          if (intersects.length > 0) {
+            document.body.style.cursor = 'pointer';
+            const hoveredMesh = intersects[0].object;
+            setHoveredPolicy(spheresRef.current.find(s => s.mesh === hoveredMesh)?.data);
+            spheresRef.current.forEach(s => {
+              const activeCount = s.data.parties.filter(p => activePartiesRef.current.includes(p)).length;
+              const baseScale = 1 + (Math.max(0, activeCount - 1) * 0.2);
+              s.mesh.scale.setScalar(s.mesh === hoveredMesh ? baseScale * 1.3 : baseScale);
+            });
+          } else {
+            document.body.style.cursor = 'default'; setHoveredPolicy(null);
+            spheresRef.current.forEach(s => {
+              const activeCount = s.data.parties.filter(p => activePartiesRef.current.includes(p)).length;
+              s.mesh.scale.setScalar(1 + (Math.max(0, activeCount - 1) * 0.2));
+            });
+          }
+          renderer.render(scene, camera);
+        };
+        animate();
+        return () => {
+          cancelAnimationFrame(frameIdRef.current);
+          mountRef.current?.removeEventListener('mousemove', handleMouseMove);
+          mountRef.current?.removeEventListener('click', handleClick);
+          window.removeEventListener('resize', handleResize);
+          renderer.dispose();
+        };
+      }, []);
+
+      useEffect(() => {
+        if (windowMeshRef.current) {
+          const mesh = windowMeshRef.current;
+          const targetX = windowCenter; const targetScaleX = windowWidth;
+          let start = Date.now(); const startX = mesh.position.x;
+          const animateWindow = () => {
+            const now = Date.now(); const progress = Math.min((now - start) / 600, 1);
+            const ease = 1 - Math.pow(1 - progress, 4);
+            mesh.position.x = startX + (targetX - startX) * ease;
+            mesh.scale.x = targetScaleX;
+            if (progress < 1) requestAnimationFrame(animateWindow);
+          };
+          animateWindow();
+        }
+      }, [ageGroup, windowWidth, windowCenter]);
+
+      useEffect(() => {
+        if (!sceneRef.current) return;
+        spheresRef.current.forEach(s => sceneRef.current.remove(s.mesh));
+        spheresRef.current = [];
+        visiblePolicies.forEach(policy => {
+          const activePolicyParties = policy.parties.filter(p => activeParties.includes(p));
+          const colors = activePolicyParties.map(p => interestGroups.find(g => g.id === p)?.color || '#fff');
+          const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.35, 1), new THREE.MeshStandardMaterial({ map: generateTexture(colors), roughness: 0.2, metalness: 0.5, emissive: colors[0], emissiveIntensity: 0.7 }));
+          if (activePolicyParties.length > 1) mesh.scale.setScalar(1 + (activePolicyParties.length - 1) * 0.2);
+          mesh.position.set(policy.position, 0, 0);
+          sceneRef.current.add(mesh);
+          spheresRef.current.push({ mesh, xPos: policy.position, data: policy });
+        });
+      }, [visiblePolicies, interestGroups, activeParties]);
+
+      return <div ref={mountRef} className="w-full h-full relative outline-none" />;
+    };
+
+    // --- Draggable UI Panels ---
+
+    const DraggablePanel = ({ yAxisMode, setYAxisMode, ageGroup, setAgeGroup, activeParties, toggleParty, theme, setTheme, wobble, setWobble, currentDatasetId, setDataset, axisOptions, windowOptions, interestGroups }) => {
+      const [position, setPosition] = useState({ x: 20, y: 80 });
+      const [isDragging, setIsDragging] = useState(false);
+      const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+      // Renamed to ensure no conflict
+      const [isPanelOpen, setPanelOpen] = useState(false);
+
+      console.log("DraggablePanel Rendered. isPanelOpen:", isPanelOpen);
+
+      const handleMouseDown = (e) => {
+        if (e.target.closest('.panel-header')) {
+          setIsDragging(true); const rect = e.currentTarget.getBoundingClientRect();
+          setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        }
+      };
+
+      useEffect(() => {
+        const handleMouseMove = (e) => {
+          if (isDragging) {
+            setPosition({ x: Math.max(0, Math.min(window.innerWidth - 300, e.clientX - dragOffset.x)), y: Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dragOffset.y)) });
+          }
+        };
+        const handleMouseUp = () => setIsDragging(false);
+        if (isDragging) { window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); }
+        return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
+      }, [isDragging, dragOffset]);
+
+      const bgClass = theme === 'dark' ? 'bg-gray-900/90 border-gray-700' : 'bg-white/90 border-gray-200';
+      const textClass = theme === 'dark' ? 'text-white' : 'text-gray-900';
+      const subTextClass = theme === 'dark' ? 'text-gray-500' : 'text-gray-500';
+
+      return (
+        <div className={`fixed z-50 w-72 backdrop-blur-xl border rounded-lg shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 ${bgClass}`} style={{ left: position.x, top: position.y }} onMouseDown={handleMouseDown}>
+          <div className={`panel-header flex items-center justify-between px-4 py-3 cursor-grab active:cursor-grabbing border-b select-none ${theme === 'dark' ? 'bg-gray-800/80 border-gray-700' : 'bg-gray-100/80 border-gray-200'}`}>
+            <div className="flex items-center gap-2"><svg className="w-4 h-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg><span className={`text-xs font-bold uppercase tracking-wider ${textClass}`}>Control Panel</span></div>
+            <div className="flex items-center gap-2">
+              <button onClick={(e) => { e.stopPropagation(); setTheme(theme === 'dark' ? 'light' : 'dark'); }} className={`p-1 rounded ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10' : 'text-gray-500 hover:bg-black/10'}`}>{theme === 'dark' ? '☀' : '☾'}</button>
+              <button onClick={(e) => { e.stopPropagation(); setPanelOpen(!isPanelOpen); }} className="text-gray-500 hover:text-current">{isPanelOpen ? '−' : '+'}</button>
+            </div>
+          </div>
+          {isPanelOpen && (
+            <div className="p-4 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar" onMouseDown={e => e.stopPropagation()}>
+              <div>
+                <label className={`text-[10px] font-bold uppercase tracking-wider mb-2 block ${subTextClass}`}>Select Ontology</label>
+                <select value={currentDatasetId} onChange={(e) => setDataset(e.target.value)} className={`w-full rounded p-2 text-xs focus:outline-none border font-medium ${theme === 'dark' ? 'bg-gray-950 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-700'}`}>
+                  {Object.entries(DATASETS).map(([key, data]) => (<option key={key} value={key}>{data.title}</option>))}
+                </select>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-gray-700/50">
+                <label className={`text-[10px] font-bold uppercase tracking-wider ${subTextClass}`}>Animate Nodes</label>
+                <button onClick={() => setWobble(!wobble)} className={`w-8 h-4 rounded-full relative transition-colors duration-200 ${wobble ? 'bg-teal-500' : 'bg-gray-600'}`}>
+                  <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all duration-200 ${wobble ? 'left-4.5' : 'left-0.5'}`} />
+                </button>
+              </div>
+              <div>
+                <label className={`text-[10px] font-bold uppercase tracking-wider mb-2 block ${subTextClass}`}>Y-Axis Dimension</label>
+                <div className="flex flex-col gap-1">
+                  {axisOptions.map(opt => (
+                    <button key={opt.id} onClick={() => setYAxisMode(opt.id)} className={`text-left px-3 py-2 rounded text-xs transition-all border ${yAxisMode === opt.id ? 'bg-teal-500/20 text-teal-300 border-teal-500' : `bg-transparent border-transparent ${subTextClass} hover:bg-gray-800`}`}>
+                      <span className="block font-medium">{opt.label}</span>
+                      <span className="text-[10px] opacity-70">{opt.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className={`text-[10px] font-bold uppercase tracking-wider mb-2 block ${subTextClass}`}>Consensus Filter</label>
+                <select value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} className={`w-full rounded p-2 text-xs focus:outline-none border ${theme === 'dark' ? 'bg-gray-950 border-gray-700 text-gray-300' : 'bg-white border-gray-300 text-gray-700'}`}>
+                  {Object.entries(windowOptions).map(([key, obj]) => (<option key={key} value={key}>{obj.label}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className={`text-[10px] font-bold uppercase tracking-wider mb-2 block ${subTextClass}`}>Interest Groups</label>
+                <div className="flex flex-col gap-1.5">
+                  {interestGroups.map(party => (
+                    <button key={party.id} onClick={() => toggleParty(party.id)} className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md border text-xs transition-all ${activeParties.includes(party.id) ? (theme === 'dark' ? 'bg-gray-800 border-gray-600 text-gray-200' : 'bg-gray-100 border-gray-300 text-gray-800') : 'bg-transparent border-transparent hover:bg-gray-800'}`}>
+                      <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: party.color }}></div><span>{party.name}</span></div>
+                      {activeParties.includes(party.id) && <span className="text-teal-500">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const Tooltip = ({ policy, yAxisMode, theme, onClose, axisOptions, interestGroups }) => {
+      if (!policy) return null;
+      const partiesInfo = policy.parties.map(id => interestGroups.find(g => g.id === id)).filter(Boolean);
+      const [position, setPosition] = useState({ x: window.innerWidth - 420, y: 100 });
+      const [isDragging, setIsDragging] = useState(false);
+      const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+      const handleMouseDown = (e) => {
+        if (e.target.closest('.tooltip-header')) {
+          setIsDragging(true); const rect = e.currentTarget.getBoundingClientRect();
+          setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        }
+      };
+
+      useEffect(() => {
+        const handleMouseMove = (e) => { if (isDragging) setPosition({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y }); };
+        const handleMouseUp = () => setIsDragging(false);
+        if (isDragging) { window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); }
+        return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
+      }, [isDragging, dragOffset]);
+
+      const bgClass = theme === 'dark' ? 'bg-gray-900/95 border-gray-600 text-white' : 'bg-white/95 border-gray-200 text-gray-900';
+      const subTextClass = theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
+
+      return (
+        <div className={`fixed z-40 w-96 backdrop-blur-xl border rounded-lg shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 ${bgClass}`} style={{ left: position.x, top: position.y }} onMouseDown={handleMouseDown}>
+          <div className={`tooltip-header flex justify-between items-start p-4 cursor-grab active:cursor-grabbing border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'}`}>
+            <div className="flex flex-wrap items-center gap-2">
+              {partiesInfo.map(party => (<span key={party.id} className="px-2 py-0.5 rounded text-[10px] uppercase font-bold text-white shadow-sm" style={{ backgroundColor: party.color }}>{party.name}</span>))}
+              <span className={`text-[10px] font-mono border px-1.5 py-0.5 rounded ${theme === 'dark' ? 'border-gray-700 text-gray-400' : 'border-gray-300 text-gray-500'}`}>{policy.status}</span>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); onClose(); }} className={`p-1 rounded-full hover:bg-gray-500/20 ${subTextClass}`}><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+          </div>
+          <div className="p-5 pt-3 pointer-events-auto">
+            <h3 className="font-serif text-lg leading-snug mb-2 font-bold">{policy.title}</h3>
+            <p className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} text-xs leading-relaxed font-light mb-4`}>{policy.description}</p>
+            {policy.stats?.length > 0 && (
+              <div className="mb-4 space-y-2">
+                <h4 className={`text-[10px] font-bold uppercase tracking-wider ${subTextClass}`}>Key Evidence & Quotes</h4>
+                {policy.stats.map((stat, idx) => (<a key={idx} href={stat.sourceUrl} target="_blank" rel="noopener noreferrer" className={`block p-2 ${theme === 'dark' ? 'bg-gray-800/50 text-gray-300' : 'bg-gray-100 text-gray-700'} hover:bg-opacity-80 border-l-2 border-teal-500 rounded-r text-[10px] italic transition-colors group`} onClick={(e) => e.stopPropagation()}>"{stat.text}"<span className="block mt-1 text-teal-500 font-semibold group-hover:underline">Source ↗</span></a>))}
+              </div>
+            )}
+            <a href={policy.source} target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1.5 border border-teal-600 text-teal-500 hover:bg-teal-600 hover:text-white text-[10px] font-bold rounded transition-colors mb-4 shadow-sm" onClick={(e) => e.stopPropagation()}>Link to Reference ↗</a>
+            <div className={`space-y-2 pt-2 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+              {axisOptions.map(opt => (<div key={opt.id} className="flex items-center justify-between text-[10px]"><span className={`uppercase tracking-wider ${yAxisMode === opt.id ? 'text-teal-500 font-bold' : subTextClass}`}>{opt.label}</span><div className="flex items-center gap-2"><span className={`font-mono ${subTextClass}`}>{policy[opt.id]}/10</span><div className={`w-20 h-1.5 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}><div className={`h-full rounded-full ${yAxisMode === opt.id ? 'bg-teal-500' : 'bg-gray-500'}`} style={{ width: `${(policy[opt.id] || 0) * 10}%` }} /></div></div></div>))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const PolicyList = ({ policies, theme, setSelectedPolicy, interestGroups }) => {
+      const headerClass = theme === 'dark' ? 'text-white' : 'text-gray-900';
+      const borderClass = theme === 'dark' ? 'border-gray-800' : 'border-gray-200';
+      return (
+        <div className="max-w-5xl mx-auto px-6 pb-20 mt-12">
+          <div className={`flex items-center justify-between border-b pb-4 mb-8 ${borderClass}`}><h2 className={`text-lg font-serif ${headerClass}`}>Narrative & Policy Index</h2><span className={`text-xs font-mono text-gray-500`}>{policies.length} Active Records</span></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {policies.length > 0 ? (policies.map(policy => (
+              <div key={policy.id} className={`group flex flex-col gap-3 p-4 rounded-lg border transition-all cursor-pointer ${theme === 'dark' ? 'border-gray-800 hover:border-gray-600' : 'border-gray-200 hover:border-gray-400'}`} onClick={() => setSelectedPolicy(policy)}>
+                <div className="flex justify-between items-start"><div className="flex items-center gap-1">{policy.parties.map(id => (<div key={id} className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: interestGroups.find(g => g.id === id)?.color }} title={interestGroups.find(g => g.id === id)?.name} />))}</div><a href={policy.source} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-500 transition-colors" onClick={(e) => e.stopPropagation()}><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></a></div>
+                <div><h4 className={`font-medium text-sm mb-1 group-hover:text-teal-500 transition-colors ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>{policy.title}</h4><p className={`text-xs leading-relaxed line-clamp-3 mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{policy.description}</p>{policy.stats?.map((stat, idx) => (<div key={idx} className="text-[10px] text-gray-500 italic border-l-2 border-gray-300 pl-2 mt-1 line-clamp-1">{stat.text}</div>))}</div>
+              </div>
+            ))) : (<div className={`col-span-3 text-center py-12 text-sm font-light italic border border-dashed rounded-lg text-gray-500 ${borderClass}`}>No narratives matching current criteria.</div>)}
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [currentDatasetId, setDataset] = useState('health_ip');
+      const currentDataset = DATASETS[currentDatasetId];
+      const [activeParties, setActiveParties] = useState(currentDataset.groups.map(p => p.id));
+      useEffect(() => { setActiveParties(DATASETS[currentDatasetId].groups.map(p => p.id)); setYAxisMode(DATASETS[currentDatasetId].yAxis[0].id); setAgeGroup('all'); }, [currentDatasetId]);
+      const [hoveredPolicy, setHoveredPolicy] = useState(null);
+      const [selectedPolicy, setSelectedPolicy] = useState(null);
+      const [yAxisMode, setYAxisMode] = useState(currentDataset.yAxis[0].id);
+      const [ageGroup, setAgeGroup] = useState('all');
+      const [theme, setTheme] = useState('dark');
+      const [wobble, setWobble] = useState(true);
+      const toggleParty = (id) => setActiveParties(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+
+      return (
+        <div className={`min-h-screen font-sans ${theme === 'dark' ? 'bg-[#111827] text-gray-300' : 'bg-gray-50 text-gray-600'} transition-colors duration-300`}>
+          <header className="pt-8 pb-6 px-6 text-center"><h1 className="text-xl font-serif mb-2 tracking-tight opacity-60">The Overton Window Ontology Graphic</h1><p className={`text-3xl font-bold uppercase tracking-widest max-w-2xl mx-auto leading-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{currentDataset.title}</p></header>
+          <main className={`relative mx-auto max-w-6xl h-[600px] border-y shadow-xl overflow-hidden rounded-xl mx-4 md:mx-auto ${theme === 'dark' ? 'bg-[#111827] border-gray-800' : 'bg-white border-gray-200'}`}>
+            <div className={`absolute left-6 top-1/2 -translate-y-1/2 text-[10px] font-mono tracking-widest uppercase origin-left -rotate-90 pointer-events-none select-none flex items-center gap-3 z-10 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`}><span className={`w-8 h-px ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'}`}></span><span>{currentDataset.yAxis.find(y => y.id === yAxisMode)?.label || 'Y-Axis'}</span></div>
+            <div className="absolute inset-x-0 bottom-0 pointer-events-none select-none z-10 w-full h-8 text-[9px] font-mono tracking-widest uppercase text-gray-500"><span className="absolute left-[17.9%] bottom-3 -translate-x-1/2">Unthinkable</span><span className="absolute left-[28.6%] bottom-3 -translate-x-1/2">Radical</span><span className="absolute left-[35.7%] bottom-3 -translate-x-1/2 hidden sm:block">Acceptable</span><span className="absolute left-[42.8%] bottom-3 -translate-x-1/2 hidden sm:block">Sensible</span><span className="absolute left-[50%] bottom-3 text-teal-500 font-bold opacity-90 -translate-x-1/2">Policy</span><span className="absolute left-[57.1%] bottom-3 -translate-x-1/2 hidden sm:block">Sensible</span><span className="absolute left-[64.3%] bottom-3 -translate-x-1/2 hidden sm:block">Acceptable</span><span className="absolute left-[71.4%] bottom-3 -translate-x-1/2">Radical</span><span className="absolute left-[82.1%] bottom-3 -translate-x-1/2">Unthinkable</span></div>
+            <DraggablePanel {...{ yAxisMode, setYAxisMode, ageGroup, setAgeGroup, activeParties, toggleParty, theme, setTheme, wobble, setWobble, currentDatasetId, setDataset }} axisOptions={currentDataset.yAxis} windowOptions={currentDataset.windows} interestGroups={currentDataset.groups} />
+            <Tooltip policy={selectedPolicy || hoveredPolicy} {...{ yAxisMode, theme }} onClose={() => setSelectedPolicy(null)} axisOptions={currentDataset.yAxis} interestGroups={currentDataset.groups} />
+            <OvertonViz policies={currentDataset.policies} {...{ activeParties, setHoveredPolicy, setSelectedPolicy, selectedPolicy, yAxisMode, ageGroup, theme, wobble }} interestGroups={currentDataset.groups} />
+          </main>
+          <PolicyList policies={currentDataset.policies.filter(p => p.parties.some(party => activeParties.includes(party)))} {...{ theme, setSelectedPolicy }} interestGroups={currentDataset.groups} />
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+
+</html>

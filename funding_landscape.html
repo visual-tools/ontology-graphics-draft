@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Health Research Funding Landscape 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-gov: #3b82f6;
+            /* Blue - UKRI/NIHR */
+            --color-industry: #a855f7;
+            /* Purple - Pharma/Biotech */
+            --color-charity: #ec4899;
+            /* Pink - Wellcome/AMRC */
+            --bg-dark: #0f172a;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            /* Canvas covers full screen */
+        }
+
+        /* UI Overlay Elements */
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+            /* Let clicks pass through to canvas controls if needed */
+        }
+
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .stat-value {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Toggle Switch Styling */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #10b981;
+        }
+
+        .toggle-checkbox:checked+.toggle-label {
+            background-color: #10b981;
+        }
+
+        .legend-dot {
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        /* Custom Scrollbar for panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body class="h-screen w-screen flex flex-col">
+
+    <!-- Canvas Layer -->
+    <canvas id="flowCanvas" class="absolute inset-0 z-0"></canvas>
+
+    <!-- Header / Top Bar -->
+    <div class="ui-layer w-full p-6 flex justify-between items-start">
+        <div class="pointer-events-auto max-w-lg">
+            <h1 class="text-3xl font-black tracking-tight text-white mb-2">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">UK
+                    Health Research</span> Ecosystem
+            </h1>
+            <p class="text-slate-400 text-sm leading-relaxed glass-panel p-4 rounded-xl border-l-4 border-blue-500">
+                <strong>2025 Data Model:</strong> Visualizing the £16bn+ annual flow from funding sources to societal
+                impact.
+                <br><span class="text-xs mt-2 block opacity-75"><i class="fas fa-info-circle mr-1"></i> "Pixels"
+                    represent capital flow (£M). Speed indicates liquidity. Size represents grant volume.</span>
+            </p>
+        </div>
+
+        <!-- Controls / Filters -->
+        <div class="pointer-events-auto glass-panel rounded-xl p-4 flex flex-col gap-3 min-w-[240px]">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Active Funding Streams</h3>
+
+            <!-- Gov Toggle -->
+            <div class="flex items-center justify-between group cursor-pointer" onclick="toggleSource('gov')">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-blue-500 legend-dot shadow-blue-500/50"></div>
+                    <div class="flex flex-col">
+                        <span class="text-sm font-bold text-slate-200">Public (UKRI/NIHR)</span>
+                        <span class="text-[10px] text-slate-500">~£3.5bn/yr</span>
+                    </div>
+                </div>
+                <div id="btn-gov" class="w-8 h-4 bg-blue-500/20 rounded-full relative transition-colors">
+                    <div
+                        class="w-4 h-4 bg-blue-400 rounded-full absolute -top-0 right-0 shadow-sm transition-transform transform scale-110">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Industry Toggle -->
+            <div class="flex items-center justify-between group cursor-pointer" onclick="toggleSource('industry')">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-purple-500 legend-dot shadow-purple-500/50"></div>
+                    <div class="flex flex-col">
+                        <span class="text-sm font-bold text-slate-200">Industry (Pharma)</span>
+                        <span class="text-[10px] text-slate-500">~£8.7bn/yr</span>
+                    </div>
+                </div>
+                <div id="btn-industry" class="w-8 h-4 bg-purple-500/20 rounded-full relative transition-colors">
+                    <div
+                        class="w-4 h-4 bg-purple-400 rounded-full absolute -top-0 right-0 shadow-sm transition-transform transform scale-110">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charity Toggle -->
+            <div class="flex items-center justify-between group cursor-pointer" onclick="toggleSource('charity')">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-pink-500 legend-dot shadow-pink-500/50"></div>
+                    <div class="flex flex-col">
+                        <span class="text-sm font-bold text-slate-200">Charity (AMRC)</span>
+                        <span class="text-[10px] text-slate-500">~£3.5bn/yr</span>
+                    </div>
+                </div>
+                <div id="btn-charity" class="w-8 h-4 bg-pink-500/20 rounded-full relative transition-colors">
+                    <div
+                        class="w-4 h-4 bg-pink-400 rounded-full absolute -top-0 right-0 shadow-sm transition-transform transform scale-110">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Stats Area (Bottom) -->
+    <div class="ui-layer mt-auto w-full p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- ROI Card -->
+        <div
+            class="glass-panel p-5 rounded-2xl pointer-events-auto transform hover:scale-[1.02] transition-transform duration-300">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-slate-400 text-xs font-bold uppercase">Total Economic Value</h3>
+                <i class="fas fa-chart-line text-emerald-400"></i>
+            </div>
+            <div class="text-4xl font-black text-white mb-1 stat-value" id="val-economic">£0.0bn</div>
+            <p class="text-xs text-emerald-400 font-medium">+<span id="rate-economic">0</span>M / sec</p>
+            <div class="w-full bg-slate-700/50 h-1 mt-4 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 w-0 transition-all duration-300" id="bar-economic"></div>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-2">Includes NIHR 1:13 multiplier effect</p>
+        </div>
+
+        <!-- Health Outcomes Card -->
+        <div
+            class="glass-panel p-5 rounded-2xl pointer-events-auto transform hover:scale-[1.02] transition-transform duration-300">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-slate-400 text-xs font-bold uppercase">Patient Impact (QALYs)</h3>
+                <i class="fas fa-heartbeat text-rose-400"></i>
+            </div>
+            <div class="text-4xl font-black text-white mb-1 stat-value" id="val-health">0</div>
+            <p class="text-xs text-rose-400 font-medium">Lives Impacted</p>
+            <div class="w-full bg-slate-700/50 h-1 mt-4 rounded-full overflow-hidden">
+                <div class="h-full bg-rose-500 w-0 transition-all duration-300" id="bar-health"></div>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-2">Driven by Clinical & Prevention research</p>
+        </div>
+
+        <!-- Commercial Output Card -->
+        <div
+            class="glass-panel p-5 rounded-2xl pointer-events-auto transform hover:scale-[1.02] transition-transform duration-300">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-slate-400 text-xs font-bold uppercase">Commercial Products</h3>
+                <i class="fas fa-flask text-indigo-400"></i>
+            </div>
+            <div class="text-4xl font-black text-white mb-1 stat-value" id="val-commercial">0</div>
+            <p class="text-xs text-indigo-400 font-medium">New Therapies / Devices</p>
+            <div class="w-full bg-slate-700/50 h-1 mt-4 rounded-full overflow-hidden">
+                <div class="h-full bg-indigo-500 w-0 transition-all duration-300" id="bar-commercial"></div>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-2">Heavily dependent on Industry R&D</p>
+        </div>
+    </div>
+
+    <!-- Hidden Logic / Canvas Controller -->
+    <script>
+        /** * DATA MODEL CONFIGURATION 
+         * Based on UK Health Research Analysis 2022/2024 & AMRC Data
+         */
+        const NODES = {
+            // Source Nodes (Top Level)
+            gov: { x: 0.2, y: 0.1, color: '#3b82f6', label: 'Government', radius: 30, pulse: true },
+            industry: { x: 0.5, y: 0.1, color: '#a855f7', label: 'Industry', radius: 45, pulse: true },
+            charity: { x: 0.8, y: 0.1, color: '#ec4899', label: 'Charity', radius: 30, pulse: true },
+
+            // Stage Nodes (Mid Level)
+            basic: { x: 0.3, y: 0.45, color: '#64748b', label: 'Discovery Science', radius: 25 },
+            clinical: { x: 0.5, y: 0.45, color: '#64748b', label: 'Clinical Dev', radius: 35 },
+            public_health: { x: 0.7, y: 0.45, color: '#64748b', label: 'Prevention/PH', radius: 20 },
+
+            // Output Nodes (Bottom Level)
+            impact_econ: { x: 0.2, y: 0.85, color: '#10b981', label: 'Economic Value', radius: 40, type: 'output' },
+            impact_prod: { x: 0.5, y: 0.85, color: '#6366f1', label: 'Products', radius: 40, type: 'output' },
+            impact_health: { x: 0.8, y: 0.85, color: '#f43f5e', label: 'Health Outcomes', radius: 40, type: 'output' }
+        };
+
+        // Weighted Connections: Source -> Stage -> Output
+        // Weights approximate real-world distribution %
+        const CONNECTIONS = [
+            // Government Flows
+            { from: 'gov', to: 'basic', weight: 0.45 },
+            { from: 'gov', to: 'clinical', weight: 0.35 },
+            { from: 'gov', to: 'public_health', weight: 0.20 },
+
+            // Industry Flows (Heavily clinical/translational)
+            { from: 'industry', to: 'basic', weight: 0.20 },
+            { from: 'industry', to: 'clinical', weight: 0.75 },
+            { from: 'industry', to: 'public_health', weight: 0.05 },
+
+            // Charity Flows (Balanced, heavy basic & patient focused)
+            { from: 'charity', to: 'basic', weight: 0.40 },
+            { from: 'charity', to: 'clinical', weight: 0.40 },
+            { from: 'charity', to: 'public_health', weight: 0.20 },
+
+            // Stage to Output Flows
+            // Basic Science feeds into Products (long term) and Health Knowledge
+            { from: 'basic', to: 'impact_prod', weight: 0.3 },
+            { from: 'basic', to: 'impact_health', weight: 0.7 },
+
+            // Clinical feeds heavily into Products and Economic value (trials activity)
+            { from: 'clinical', to: 'impact_prod', weight: 0.5 },
+            { from: 'clinical', to: 'impact_econ', weight: 0.3 },
+            { from: 'clinical', to: 'impact_health', weight: 0.2 },
+
+            // Public Health feeds heavily into Health Outcomes and Econ (prevention savings)
+            { from: 'public_health', to: 'impact_health', weight: 0.6 },
+            { from: 'public_health', to: 'impact_econ', weight: 0.4 }
+        ];
+
+        // Multipliers for value generation based on Source -> Destination
+        // E.g. Gov money in Economy has high multiplier (1:13 NIHR stat)
+        const MULTIPLIERS = {
+            'gov_impact_econ': 13.0,
+            'industry_impact_prod': 5.0,
+            'charity_impact_health': 8.0,
+            'default': 2.0
+        };
+
+        const canvas = document.getElementById('flowCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // State
+        let particles = [];
+        let width, height;
+        let stats = {
+            economic: 0,
+            health: 0,
+            commercial: 0
+        };
+        let activeSources = {
+            gov: true,
+            industry: true,
+            charity: true
+        };
+
+        // Configuration
+        const PARTICLE_SPEED_BASE = 0.004; // Progress per frame (0-1)
+        const SPAWN_RATE = 2; // Particles per frame
+
+        // Initialization
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor(sourceKey) {
+                this.sourceKey = sourceKey;
+                this.path = [];
+                this.progress = 0;
+                this.speed = PARTICLE_SPEED_BASE + (Math.random() * 0.002);
+                this.color = NODES[sourceKey].color;
+                this.size = Math.random() * 2 + 1;
+                this.history = []; // For trail effect
+
+                // Calculate Route
+                this.calculateRoute();
+            }
+
+            calculateRoute() {
+                // Step 1: Source to Stage
+                const stageKey = this.pickNext(this.sourceKey);
+                // Step 2: Stage to Output
+                const outputKey = this.pickNext(stageKey);
+
+                // Generate Spline Points
+                const p1 = this.getNodePos(this.sourceKey);
+                const p2 = this.getNodePos(stageKey);
+                const p3 = this.getNodePos(outputKey);
+
+                // Add some randomness to control points for organic flow
+                const cp1 = {
+                    x: p1.x + (Math.random() - 0.5) * 50,
+                    y: p1.y + (p2.y - p1.y) * 0.5
+                };
+                const cp2 = {
+                    x: p2.x + (Math.random() - 0.5) * 50,
+                    y: p2.y + (p3.y - p2.y) * 0.5
+                };
+
+                this.path = { start: p1, mid: p2, end: p3, cp1: cp1, cp2: cp2, finalNode: outputKey, sourceNode: this.sourceKey };
+            }
+
+            pickNext(currentKey) {
+                const options = CONNECTIONS.filter(c => c.from === currentKey);
+                const totalWeight = options.reduce((sum, item) => sum + item.weight, 0);
+                let random = Math.random() * totalWeight;
+
+                for (let opt of options) {
+                    if (random < opt.weight) return opt.to;
+                    random -= opt.weight;
+                }
+                return options[0].to; // Fallback
+            }
+
+            getNodePos(key) {
+                return {
+                    x: NODES[key].x * width,
+                    y: NODES[key].y * height
+                };
+            }
+
+            update() {
+                this.progress += this.speed;
+
+                // Store history for trail
+                if (this.progress < 1) {
+                    const pos = this.getPosition(this.progress);
+                    this.history.push(pos);
+                    if (this.history.length > 8) this.history.shift();
+                }
+
+                if (this.progress >= 1) {
+                    this.finish();
+                    return false; // Remove me
+                }
+                return true; // Keep me
+            }
+
+            getPosition(t) {
+                // Multi-stage Bezier interpolation
+                // We treat start->mid as one curve, mid->end as another
+                // Or effectively map 0-0.5 to first leg, 0.5-1.0 to second leg
+
+                if (t < 0.5) {
+                    const localT = t * 2;
+                    return this.getQuadraticBezier(localT, this.path.start, this.path.cp1, this.path.mid);
+                } else {
+                    const localT = (t - 0.5) * 2;
+                    return this.getQuadraticBezier(localT, this.path.mid, this.path.cp2, this.path.end);
+                }
+            }
+
+            getQuadraticBezier(t, p0, p1, p2) {
+                const x = (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * p1.x + t * t * p2.x;
+                const y = (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * p1.y + t * t * p2.y;
+                return { x, y };
+            }
+
+            draw(ctx) {
+                if (this.history.length < 2) return;
+
+                ctx.beginPath();
+                ctx.moveTo(this.history[0].x, this.history[0].y);
+                for (let i = 1; i < this.history.length; i++) {
+                    ctx.lineTo(this.history[i].x, this.history[i].y);
+                }
+
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.size;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = 0.6;
+                ctx.stroke();
+
+                // Head
+                const head = this.history[this.history.length - 1];
+                ctx.fillStyle = '#fff';
+                ctx.globalAlpha = 0.9;
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            finish() {
+                // Add value to stats based on logic
+                let value = 1;
+
+                // Check specific multiplier key
+                const multKey = `${this.sourceKey}_${this.path.finalNode}`;
+                const mult = MULTIPLIERS[multKey] || MULTIPLIERS.default;
+
+                value *= mult;
+
+                if (this.path.finalNode === 'impact_econ') stats.economic += value * 0.01; // £bn
+                if (this.path.finalNode === 'impact_prod') stats.commercial += 1; // Count
+                if (this.path.finalNode === 'impact_health') stats.health += 1; // Count
+
+                // Visual explosion at target
+                createExplosion(this.path.end.x, this.path.end.y, this.color);
+            }
+        }
+
+        let explosions = [];
+
+        function createExplosion(x, y, color) {
+            explosions.push({
+                x, y, color,
+                radius: 1,
+                alpha: 1
+            });
+        }
+
+        function drawExplosions() {
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const e = explosions[i];
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = e.color;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = e.alpha;
+                ctx.stroke();
+
+                e.radius += 1.5;
+                e.alpha -= 0.05;
+
+                if (e.alpha <= 0) explosions.splice(i, 1);
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function drawNodes() {
+            Object.keys(NODES).forEach(key => {
+                const node = NODES[key];
+                const x = node.x * width;
+                const y = node.y * height;
+
+                // Glow
+                const grad = ctx.createRadialGradient(x, y, node.radius * 0.5, x, y, node.radius * 2);
+                grad.addColorStop(0, node.color);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+                ctx.fillStyle = grad;
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath();
+                ctx.arc(x, y, node.radius * 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Core
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = '#1e293b'; // Slate 800
+                ctx.strokeStyle = node.color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x, y, node.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Label
+                ctx.fillStyle = '#cbd5e1';
+                ctx.font = 'bold 12px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(node.label, x, y + 4);
+            });
+        }
+
+        function drawConnections() {
+            ctx.globalAlpha = 0.05;
+            ctx.lineWidth = 1;
+
+            // Draw faint background lines for context
+            CONNECTIONS.forEach(conn => {
+                const start = NODES[conn.from];
+                const end = NODES[conn.to];
+
+                const x1 = start.x * width;
+                const y1 = start.y * height;
+                const x2 = end.x * width;
+                const y2 = end.y * height;
+
+                ctx.strokeStyle = start.color;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        function toggleSource(source) {
+            activeSources[source] = !activeSources[source];
+
+            // UI Update
+            const btn = document.getElementById(`btn-${source}`);
+            const dot = btn.querySelector('div');
+
+            if (activeSources[source]) {
+                btn.classList.remove('bg-slate-700');
+                btn.classList.add(source === 'gov' ? 'bg-blue-500/20' : source === 'industry' ? 'bg-purple-500/20' : 'bg-pink-500/20');
+                dot.style.transform = 'translateX(0)';
+                dot.classList.remove('bg-slate-500');
+                dot.classList.add(source === 'gov' ? 'bg-blue-400' : source === 'industry' ? 'bg-purple-400' : 'bg-pink-400');
+            } else {
+                btn.classList.add('bg-slate-700');
+                btn.classList.remove('bg-blue-500/20', 'bg-purple-500/20', 'bg-pink-500/20');
+                dot.style.transform = 'translateX(-16px)';
+                dot.classList.add('bg-slate-500');
+                dot.classList.remove('bg-blue-400', 'bg-purple-400', 'bg-pink-400');
+            }
+        }
+
+        function updateUI() {
+            // Update Text
+            document.getElementById('val-economic').innerText = `£${stats.economic.toFixed(1)}bn`;
+            document.getElementById('val-health').innerText = Math.floor(stats.health * 10).toLocaleString();
+            document.getElementById('val-commercial').innerText = Math.floor(stats.commercial).toLocaleString();
+
+            // Update Progress Bars (just loop visual)
+            document.getElementById('bar-economic').style.width = `${(stats.economic % 10) * 10}%`;
+            document.getElementById('bar-health').style.width = `${(stats.health % 100) * 1}%`;
+            document.getElementById('bar-commercial').style.width = `${(stats.commercial % 50) * 2}%`;
+        }
+
+        function loop() {
+            ctx.clearRect(0, 0, width, height);
+
+            drawConnections();
+            drawNodes();
+
+            // Spawning Logic
+            if (activeSources.gov && Math.random() < 0.4) particles.push(new Particle('gov'));
+            if (activeSources.industry && Math.random() < 0.9) particles.push(new Particle('industry')); // Industry spawns more
+            if (activeSources.charity && Math.random() < 0.4) particles.push(new Particle('charity'));
+
+            // Update & Draw Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const alive = particles[i].update();
+                if (alive) {
+                    particles[i].draw(ctx);
+                } else {
+                    particles.splice(i, 1);
+                }
+            }
+
+            drawExplosions();
+            updateUI();
+
+            requestAnimationFrame(loop);
+        }
+
+        // Start
+        loop();
+
+        // Expose toggle function globally
+        window.toggleSource = toggleSource;
+
+    </script>
+</body>
+
+</html>

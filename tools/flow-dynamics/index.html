@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Dynamics | Community Farm</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050510;
+            color: #fff;
+            font-family: sans-serif;
+        }
+
+        #chart {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            background: linear-gradient(45deg, #a8ff78, #78ffd6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        svg {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="controls">
+        <h1>Resource Flow</h1>
+        <p>Dynamics of Inputs to Impact</p>
+        <div style="margin-top: 20px;">
+            <label for="seasonSlider" style="font-size: 0.9rem; color: #a8ff78;">Season: <span id="seasonLabel"
+                    style="font-weight: bold;">SPRING</span></label>
+            <input type="range" id="seasonSlider" min="0" max="3" value="0" step="1"
+                style="width: 100%; margin-top: 10px; accent-color: #a8ff78;">
+        </div>
+    </div>
+    <div id="chart"></div>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
